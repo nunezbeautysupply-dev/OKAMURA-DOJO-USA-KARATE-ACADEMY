@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="app-version" content="20260801a-DOJO-V1.0">
+<meta name="theme-color" content="#2f3438">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Okamura Dojo</title>
+<style>
+:root{
+  --fondo:#2f3438; --tarjeta:#3b4147; --tarjeta2:#454c53; --tarjeta3:#484f56;
+  --linea:#626b74; --texto:#f3f5f6; --texto2:#bcc4cb; --texto3:#b7c0c8;
+  --rojo:#f2b3ae; --verde:#98d1a6; --ambar:#e4c26f; --plata:#c3cbd2; --salio:#f0baba;
+  --r:8px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--fondo);color:var(--texto);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased;padding-bottom:66px}
+.num{font-variant-numeric:tabular-nums;letter-spacing:.2px}
+.verde{color:var(--verde)} .ambar{color:var(--ambar)} .gris{color:var(--texto2)}
+.rojo{color:var(--rojo)}
+h1,h2,h3{margin:0;font-weight:600}
+button{font-family:inherit;font-size:15px;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--tarjeta3);color:var(--texto);
+  border:1px solid var(--linea);border-radius:var(--r);padding:9px 10px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--plata);outline-offset:-1px}
+input::placeholder,textarea::placeholder{color:#c2cad1;opacity:1}
+input[type=date],input[type=time],input[type=file]{color-scheme:dark}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--texto2) 50%),linear-gradient(135deg,var(--texto2) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat;padding-right:28px}
+
+#barra{position:sticky;top:0;z-index:40;background:#383e43;border-bottom:1px solid var(--linea);
+  display:flex;align-items:center;gap:8px;padding:9px 11px}
+#barra .marca{font-size:12.5px;font-weight:700;letter-spacing:1.1px;color:var(--rojo);
+  text-transform:uppercase;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icobtn{background:var(--tarjeta2);border:1px solid var(--linea);border-radius:var(--r);padding:6px 10px;font-size:16px;line-height:1}
+
+.wrap{max-width:660px;margin:0 auto;padding:11px}
+.vista{display:none} .vista.on{display:block}
+
+.card{background:var(--tarjeta);border:1px solid var(--linea);border-radius:var(--r);padding:11px;margin-bottom:9px}
+.card.tight{padding:9px}
+.hd{font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--texto3);margin-bottom:8px}
+.fila{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:6px 0}
+.fila+.fila{border-top:1px solid var(--linea)}
+.fila .izq{min-width:0;flex:1}
+.fila .n1{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fila .n2{font-size:12px;color:var(--texto3);margin-top:2px}
+.mono{font-variant-numeric:tabular-nums;white-space:nowrap}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--linea);margin-top:8px;padding-top:8px}
+.total b{font-size:20px;font-weight:600}
+.big{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.btn{display:block;width:100%;background:var(--tarjeta2);border:1px solid var(--linea);
+  border-radius:var(--r);padding:11px;text-align:center;font-weight:600;color:var(--texto);font-size:15px}
+.btn:active{background:var(--tarjeta3)}
+.btn.pri{background:var(--plata);color:#25292c;border-color:var(--plata)}
+.btn.pri:active{background:#dde3e8}
+.btn.rojo{background:#4e2c29;border-color:var(--rojo);color:var(--rojo)}
+.btn.chico{padding:7px 11px;width:auto;display:inline-block;font-size:13.5px;font-weight:500}
+.btn.peligro{color:var(--salio)}
+.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rejilla .btn{text-align:left;padding:12px 11px;font-weight:500}
+.rejilla .btn .e{display:block;font-size:19px;margin-bottom:3px}
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.campo{margin-bottom:10px}
+.campo label{display:block;font-size:12px;color:var(--texto3);margin-bottom:4px;
+  text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+
+/* ---- rejilla de caras para pasar lista ---- */
+.caras{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:9px}
+.cara{position:relative;background:var(--tarjeta2);border:2px solid var(--linea);border-radius:var(--r);
+  padding:8px 4px 9px;text-align:center;overflow:hidden}
+.cara.pres{border-color:var(--verde);background:#33503c}
+.cara .foto{width:62px;height:62px;border-radius:50%;margin:0 auto 5px;background:var(--tarjeta3);
+  background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:var(--texto3);border:1px solid var(--linea)}
+.cara .nom{font-size:13.5px;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cara .cint{margin-top:3px;display:flex;align-items:center;justify-content:center;gap:3px}
+.cara .tick{position:absolute;top:3px;right:5px;font-size:14px}
+.pto{width:5px;height:5px;border-radius:50%;background:var(--texto2);display:inline-block}
+.cinta{display:inline-block;width:26px;height:9px;border-radius:2px;border:1px solid rgba(255,255,255,.45);vertical-align:middle}
+.cinta.sm{width:18px;height:7px}
+
+/* ---- foto en fichas ---- */
+.avatar{width:64px;height:64px;border-radius:50%;background:var(--tarjeta3);background-size:cover;
+  background-position:center;border:2px solid var(--linea);display:flex;align-items:center;
+  justify-content:center;font-size:24px;color:var(--texto3);flex:none}
+.avatar.sm{width:40px;height:40px;font-size:16px;border-width:1px}
+
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+.pill{background:var(--tarjeta2);border:1px solid var(--linea);border-radius:20px;padding:5px 12px;font-size:13px;color:var(--texto2)}
+.pill.sel{background:var(--plata);color:#25292c;border-color:var(--plata);font-weight:600}
+.chip{display:inline-block;background:var(--tarjeta3);border-radius:4px;padding:1px 7px;font-size:11px;
+  color:var(--texto2);margin-left:5px;vertical-align:middle}
+.chip.v{background:#33503c;color:var(--verde)} .chip.a{background:#514630;color:var(--ambar)}
+.chip.r{background:#4e2c29;color:var(--rojo)}
+
+.nota{background:var(--tarjeta2);border-left:3px solid var(--plata);border-radius:0 var(--r) var(--r) 0;
+  padding:9px 11px;font-size:13px;color:var(--texto2);margin-bottom:9px}
+.nota.al{border-left-color:var(--ambar);color:#e8d3a2}
+.nota.ok{border-left-color:var(--verde);color:#b6d9c0}
+.nota.err{border-left-color:var(--salio);color:#e5bcbc}
+.vacio-msj{text-align:center;color:var(--texto3);padding:28px 12px;font-size:13.5px}
+.barra-b{height:8px;background:var(--tarjeta3);border-radius:4px;overflow:hidden;margin-top:5px}
+.barra-b i{display:block;height:100%;background:var(--plata);border-radius:4px}
+.barra-b.v i{background:var(--verde)} .barra-b.a i{background:var(--ambar)}
+.sep{height:1px;background:var(--linea);margin:10px 0}
+.mini{font-size:12px;color:var(--texto3)}
+
+#abajo{position:fixed;bottom:0;left:0;right:0;z-index:40;background:#383e43;border-top:1px solid var(--linea);
+  display:flex;padding-bottom:env(safe-area-inset-bottom)}
+#abajo button{flex:1;padding:8px 2px 9px;color:var(--texto3);font-size:10px;font-weight:600;
+  letter-spacing:.3px;border-top:2px solid transparent}
+#abajo button .e{display:block;font-size:18px;margin-bottom:2px;filter:grayscale(.5)}
+#abajo button.on{color:var(--plata);border-top-color:var(--plata)}
+#abajo button.on .e{filter:none}
+
+.capa{position:fixed;inset:0;z-index:60;background:rgba(16,18,20,.74);display:none;align-items:flex-end;justify-content:center}
+.capa.on{display:flex}
+.hoja{background:var(--tarjeta);width:100%;max-width:660px;max-height:88vh;overflow-y:auto;
+  border-radius:12px 12px 0 0;border:1px solid var(--linea);border-bottom:none;
+  padding:12px 12px calc(15px + env(safe-area-inset-bottom))}
+.hoja-tit{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;
+  position:sticky;top:-12px;background:var(--tarjeta);padding:5px 0 9px;z-index:2}
+.hoja-tit h3{font-size:15px;letter-spacing:.3px}
+.op{display:flex;justify-content:space-between;align-items:center;width:100%;padding:10px 4px;
+  border-bottom:1px solid var(--linea);font-size:15px;text-align:left;gap:9px}
+.op:active{background:var(--tarjeta2)}
+.op .fl{color:var(--texto3);font-size:12px}
+.grupo-tit{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--texto3);
+  margin:13px 0 4px;padding-top:9px;border-top:1px solid var(--linea)}
+.grupo-tit:first-of-type{border-top:none;padding-top:0;margin-top:4px}
+
+#pantalla-login{position:fixed;inset:0;z-index:90;background:var(--fondo);display:flex;
+  align-items:center;justify-content:center;padding:22px}
+#pantalla-login .caja{width:100%;max-width:340px;text-align:center}
+#pantalla-login .sello{width:60px;height:60px;margin:0 auto 18px;border-radius:50%;
+  border:2px solid var(--rojo);display:flex;align-items:center;justify-content:center;font-size:26px}
+#pantalla-login .marca{font-size:15px;font-weight:700;letter-spacing:2px;color:var(--rojo);
+  text-transform:uppercase;line-height:1.5}
+#pantalla-login .sub{font-size:11px;color:var(--texto3);letter-spacing:1.4px;text-transform:uppercase;margin:6px 0 26px}
+
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--texto3);
+  text-align:center;padding:5px 4px;border-bottom:1px solid var(--linea);font-weight:700}
+table.t th:first-child{text-align:left}
+table.t td{padding:6px 4px;border-bottom:1px solid var(--linea);text-align:center;font-variant-numeric:tabular-nums}
+table.t td:first-child{text-align:left}
+table.t tr:last-child td{border-bottom:none}
+.puntaje{display:flex;gap:6px}
+.puntaje button{flex:1;padding:9px 0;border:1px solid var(--linea);border-radius:var(--r);
+  background:var(--tarjeta2);font-weight:600;font-size:15px}
+.puntaje button.sel{background:var(--plata);color:#25292c;border-color:var(--plata)}
+#toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(14px);
+  background:var(--tarjeta3);border:1px solid var(--linea);color:var(--texto);padding:10px 16px;
+  border-radius:20px;font-size:13.5px;z-index:95;opacity:0;transition:opacity .2s,transform .2s;
+  pointer-events:none;max-width:88%;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.foto-prev{max-width:100%;border-radius:var(--r);border:1px solid var(--linea);margin-top:7px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div id="pantalla-login">
+  <div class="caja">
+    <div class="sello">🥋</div>
+    <div class="marca">Okamura Dojo</div>
+    <div class="sub">USA Karate Academy</div>
+    <div id="login-nuevo" style="display:none">
+      <div class="nota" style="text-align:left">Primera vez. Crea una clave para esta app. Se queda solo en este aparato.</div>
+      <div class="campo"><input type="password" id="cl1" placeholder="Clave nueva" autocomplete="new-password"></div>
+      <div class="campo"><input type="password" id="cl2" placeholder="Repite la clave" autocomplete="new-password"></div>
+      <button class="btn pri" id="btn-crear-clave">Crear clave</button>
+    </div>
+    <div id="login-entrar" style="display:none">
+      <div id="login-huella" style="display:none;margin-bottom:14px">
+        <button class="btn" id="btn-huella" style="padding:16px">
+          <span style="font-size:26px;display:block;margin-bottom:2px">👆</span>Toca para entrar con tu huella</button>
+        <div class="mini" style="margin-top:9px">— o entra con tu clave —</div>
+      </div>
+      <div class="campo"><input type="password" id="cl0" placeholder="Clave" autocomplete="current-password"></div>
+      <button class="btn pri" id="btn-entrar">Entrar</button>
+    </div>
+    <div id="login-msj" class="nota err" style="display:none;text-align:left;margin-top:10px"></div>
+  </div>
+</div>
+
+<div id="app-contenido" style="display:none">
+<div id="barra">
+  <div class="marca">🥋 Okamura Dojo</div>
+  <button class="icobtn" id="btn-menu" title="Menú">☰</button>
+</div>
+<div class="wrap">
+  <div class="vista on" id="v-inicio"></div>
+  <div class="vista" id="v-lista"></div>
+  <div class="vista" id="v-alumnos"></div>
+  <div class="vista" id="v-alumno"></div>
+  <div class="vista" id="v-cuotas"></div>
+  <div class="vista" id="v-cinturones"></div>
+  <div class="vista" id="v-elegibles"></div>
+  <div class="vista" id="v-examenes"></div>
+  <div class="vista" id="v-examen"></div>
+  <div class="vista" id="v-grupos"></div>
+  <div class="vista" id="v-reportes"></div>
+  <div class="vista" id="v-familias"></div>
+  <div class="vista" id="v-backup"></div>
+  <div class="vista" id="v-manual"></div>
+  <div class="vista" id="v-bitacora"></div>
+</div>
+<div id="abajo">
+  <button data-ir="inicio" class="on"><span class="e">▤</span>INICIO</button>
+  <button data-ir="lista"><span class="e">✓</span>PASAR LISTA</button>
+  <button data-ir="alumnos"><span class="e">👥</span>ALUMNOS</button>
+  <button data-ir="cuotas"><span class="e">💵</span>CUOTAS</button>
+</div>
+</div>
+
+<div class="capa" id="capa"><div class="hoja" id="hoja"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =======================================================================
+   OKAMURA DOJO USA KARATE ACADEMY · v1.0
+   Todo se guarda en este aparato. Nada sale a internet.
+   ======================================================================= */
+'use strict';
+const LLAVE='dojo_okamura_v1';
+const VERSION_APP='20260801a-DOJO-V1.0';
+
+/* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
+const CINTURONES_FABRICA=[
+ ['Blanco',   '#f2f2f2', 20, 3, 2],
+ ['Amarillo', '#e8c74a', 24, 3, 3],
+ ['Naranja',  '#e08a44', 28, 4, 3],
+ ['Verde',    '#5fa96b', 32, 4, 3],
+ ['Azul',     '#4f7fbf', 36, 6, 3],
+ ['Morado',   '#8a6bb0', 40, 6, 3],
+ ['Marrón',   '#8a6242', 48, 8, 3],
+ ['Negro',    '#2a2a2a', 60,12, 0],
+];
+const TECNICAS_FABRICA={
+ 'Blanco':['Seiza y rei','Zenkutsu dachi','Oi tsuki','Gedan barai','Mae geri','Kihon en línea'],
+ 'Amarillo':['Kokutsu dachi','Age uke','Soto uke','Gyaku tsuki','Yoko geri keage','Mawashi geri','Taikyoku Shodan','Kumite básico 1'],
+ 'Naranja':['Kiba dachi','Uchi uke','Shuto uke','Empi uchi','Yoko geri kekomi','Heian Shodan','Kumite básico 2','Rompimiento de agarre'],
+};
+
+/* ---------- helpers ---------- */
+let D=null, tostTmr=null;
+const $=id=>document.getElementById(id);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n2=v=>(Math.round((Number(v)||0)*100)/100);
+const money=v=>{const x=n2(v);return (x<0?'-':'')+'$'+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+const norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const hoyISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const anioDe=iso=>Number(String(iso||'').slice(0,4))||0;
+const mesDe=iso=>Number(String(iso||'').slice(5,7))||0;
+const MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MES3=['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DIA3=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+function fLarga(iso){if(!iso)return '';const[a,m,d]=String(iso).split('-');return `${Number(d)} ${MES3[Number(m)]} ${a}`;}
+function fCorta(iso){if(!iso)return '';const[,m,d]=String(iso).split('-');return `${Number(m)}/${Number(d)}`;}
+function diasEntre(a,b){ if(!a||!b) return 0;
+  return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000); }
+function mesesEntre(a,b){ if(!a||!b) return 0;
+  const x=new Date(a+'T12:00:00'), y=new Date(b+'T12:00:00');
+  return (y.getFullYear()-x.getFullYear())*12 + (y.getMonth()-x.getMonth()) - (y.getDate()<x.getDate()?1:0); }
+function hora12(h){ if(!h) return ''; const [H,M]=h.split(':').map(Number);
+  const ap=H>=12?'PM':'AM'; const h12=H%12===0?12:H%12; return `${h12}:${String(M).padStart(2,'0')} ${ap}`; }
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tostTmr);
+  tostTmr=setTimeout(()=>e.classList.remove('on'),2600);}
+const porId=(arr,id)=>(arr||[]).find(x=>x.id===id)||null;
+const mesClave=iso=>String(iso||'').slice(0,7);
+const mesActual=()=>hoyISO().slice(0,7);
+function mesBonito(mk){ if(!mk) return ''; const [a,m]=mk.split('-'); return MESES[Number(m)]+' '+a; }
+
+/* ---------- guardar / cargar ---------- */
+function datosNuevos(){
+  const cints=CINTURONES_FABRICA.map((c,i)=>({id:uid(),nombre:c[0],color:c[1],orden:i,
+    clases:c[2],meses:c[3],rayas:c[4],
+    tecnicas:(TECNICAS_FABRICA[c[0]]||[]).map(t=>({id:uid(),nombre:t}))}));
+  return {
+    v:1, creado:new Date().toISOString(), clave:null,
+    escuela:{nombre:'OKAMURA DOJO USA KARATE ACADEMY'},
+    grupos:[
+      {id:uid(),nombre:'Grupo 1',desde:'18:00',hasta:'19:00',dias:[2,4],activo:true},
+      {id:uid(),nombre:'Grupo 2',desde:'19:00',hasta:'20:00',dias:[2,4],activo:true}
+    ],
+    cinturones:cints, alumnos:[], familias:[], asistencia:[], pagos:[], examenes:[],
+    bitacora:[],
+    config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$'}
+  };
+}
+function guardar(){
+  try{ localStorage.setItem(LLAVE,JSON.stringify(D)); return true; }
+  catch(e){
+    alert('⚠️ NO SE PUDO GUARDAR\n\nEl aparato no aceptó los datos ('+e.name+').\n\nBaja un backup AHORA desde el menú antes de seguir.\n\nSi pasa seguido, suele ser por muchas fotos: quítale la foto a algunos alumnos que ya no estén.');
+    return false;
+  }
+}
+function log(t){ D.bitacora.push({f:new Date().toISOString(),t}); if(D.bitacora.length>4000) D.bitacora=D.bitacora.slice(-4000); }
+function cargar(){
+  const s=localStorage.getItem(LLAVE);
+  if(!s) return null;
+  try{
+    const d=JSON.parse(s); if(!d||!d.v) return null;
+    d.config=d.config||{};
+    if(d.config.huella===undefined) d.config.huella=null;
+    if(d.config.huellaBorrar===undefined) d.config.huellaBorrar=true;
+    ['grupos','cinturones','alumnos','familias','asistencia','pagos','examenes','bitacora']
+      .forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
+    d.cinturones.forEach(c=>{ if(!Array.isArray(c.tecnicas)) c.tecnicas=[]; });
+    d.alumnos.forEach(a=>{
+      if(!Array.isArray(a.historial)) a.historial=[];
+      if(!Array.isArray(a.tecnicas))  a.tecnicas=[];
+      if(a.rayas===undefined) a.rayas=0;
+      if(a.activo===undefined) a.activo=true;
+    });
+    return d;
+  }catch(e){ return null; }
+}
+
+/* ---------- clave ---------- */
+async function hash(clave,sal){
+  const enc=new TextEncoder();
+  const k=await crypto.subtle.importKey('raw',enc.encode(clave),'PBKDF2',false,['deriveBits']);
+  const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(sal),iterations:150000,hash:'SHA-256'},k,256);
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function msjLogin(t){const e=$('login-msj');if(!t){e.style.display='none';return;}e.textContent=t;e.style.display='block';}
+async function crearClave(){
+  const a=$('cl1').value,b=$('cl2').value;
+  if(a.length<4) return msjLogin('La clave necesita al menos 4 caracteres.');
+  if(a!==b) return msjLogin('Las dos claves no son iguales.');
+  D=datosNuevos();
+  const sal=uid()+uid();
+  D.clave={sal,h:await hash(a,sal)};
+  log('Se creó la clave de la app');
+  if(!guardar()) return;
+  abrirApp();
+}
+async function entrar(){
+  const c=$('cl0').value;
+  if(!c) return msjLogin('Escribe tu clave.');
+  if(await hash(c,D.clave.sal)!==D.clave.h) return msjLogin('Clave incorrecta.');
+  msjLogin(''); abrirApp();
+}
+function abrirApp(){
+  $('pantalla-login').style.display='none';
+  $('app-contenido').style.display='block';
+  ir('inicio');
+}
+
+/* ---------- huella ---------- */
+function hayHuella(){ return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create); }
+async function huellaDisponible(){
+  if(!hayHuella()) return false;
+  try{ if(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }catch(e){}
+  return false;
+}
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const deB64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');const b=atob(s);
+  const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer;};
+const azar=n=>crypto.getRandomValues(new Uint8Array(n));
+async function registrarHuella(){
+  if(!await huellaDisponible())
+    return alert('Este aparato no ofrece lector de huella al navegador.\n\nEn el teléfono suele funcionar; en una PC de escritorio muchas veces no.');
+  try{
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:azar(32), rp:{name:'Okamura Dojo'},
+      user:{id:azar(16),name:'sensei',displayName:'Sensei'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+      timeout:60000, attestation:'none'}});
+    if(!cred) return toast('No se registró la huella.');
+    D.config.huella={activa:true,id:b64(cred.rawId)};
+    log('Registró la huella en este aparato'); guardar(); toast('Huella registrada'); pintar();
+  }catch(e){ alert('No se pudo registrar la huella ('+(e&&e.name||'error')+').'); }
+}
+function quitarHuella(){
+  if(!confirm('¿Quitar la huella de este aparato?\n\nVas a seguir entrando con tu clave.')) return;
+  D.config.huella=null; log('Quitó la huella'); guardar(); toast('Huella quitada'); pintar();
+}
+async function pedirHuella(){
+  const h=D.config.huella; if(!h||!h.activa||!h.id) return false;
+  try{ return !!await navigator.credentials.get({publicKey:{challenge:azar(32),timeout:60000,
+    userVerification:'required',allowCredentials:[{type:'public-key',id:deB64(h.id)}]}}); }
+  catch(e){ return false; }
+}
+async function confirmarDueno(motivo){
+  if(!D.config.huellaBorrar || !D.config.huella || !D.config.huella.activa) return true;
+  if(await pedirHuella()) return true;
+  const c=prompt('Confirma con tu clave para:\n\n'+motivo);
+  if(c===null) return false;
+  if(await hash(c,D.clave.sal)===D.clave.h) return true;
+  toast('Clave incorrecta.'); return false;
+}
+async function entrarConHuella(){
+  if(!await pedirHuella()) return msjLogin('No se pudo leer la huella. Usa tu clave.');
+  msjLogin(''); abrirApp();
+}
+
+/* ---------- navegación ---------- */
+let vistaActual='inicio';
+const PINTORES={};
+function ir(v){
+  vistaActual=v;
+  document.querySelectorAll('.vista').forEach(e=>e.classList.remove('on'));
+  const el=$('v-'+v); if(el) el.classList.add('on');
+  document.querySelectorAll('#abajo button').forEach(b=>b.classList.toggle('on',b.dataset.ir===v));
+  window.scrollTo(0,0); pintar();
+}
+function pintar(){ if(PINTORES[vistaActual]) PINTORES[vistaActual](); }
+
+let cerrarCb=null;
+function hoja(titulo,html,cb){
+  $('hoja').innerHTML=`<div class="hoja-tit"><h3>${esc(titulo)}</h3>
+    <button class="icobtn" onclick="cerrarHoja()">✕</button></div>${html}`;
+  $('capa').classList.add('on'); cerrarCb=cb||null; $('hoja').scrollTop=0;
+}
+function cerrarHoja(){ $('capa').classList.remove('on'); $('hoja').innerHTML=''; const c=cerrarCb; cerrarCb=null; if(c)c(); }
+
+/* ---------- cosas del dojo ---------- */
+function cintDe(a){ return porId(D.cinturones,a&&a.cinturonId) || D.cinturones[0] || null; }
+function cintaHTML(c,sm){ if(!c) return '';
+  return `<span class="cinta${sm?' sm':''}" style="background:${esc(c.color)}" title="${esc(c.nombre)}"></span>`; }
+function puntosHTML(n){ let h=''; for(let i=0;i<(n||0);i++) h+='<i class="pto"></i>'; return h; }
+function siguienteCint(c){ if(!c) return null;
+  const orden=D.cinturones.slice().sort((a,b)=>a.orden-b.orden);
+  const i=orden.findIndex(x=>x.id===c.id);
+  return (i>=0 && i<orden.length-1) ? orden[i+1] : null; }
+function nombreAlumno(a){ return a? [a.nombre,a.apellido].filter(Boolean).join(' ') : ''; }
+function nombreGrupo(id){ const g=porId(D.grupos,id); return g?g.nombre:''; }
+function horarioGrupo(g){ return g? hora12(g.desde)+' – '+hora12(g.hasta) : ''; }
+function alumnosActivos(){ return D.alumnos.filter(a=>a.activo!==false); }
+function alumnosDeGrupo(gid){ return alumnosActivos().filter(a=>a.grupoId===gid); }
+
+/* clases a las que vino un alumno desde una fecha */
+function clasesDesde(alumnoId,desdeISO){
+  let n=0;
+  D.asistencia.forEach(s=>{
+    if(desdeISO && s.fecha < desdeISO) return;
+    if((s.presentes||[]).includes(alumnoId)) n++;
+  });
+  return n;
+}
+function totalClases(alumnoId){ return clasesDesde(alumnoId,null); }
+function ultimaClase(alumnoId){
+  let u=null;
+  D.asistencia.forEach(s=>{ if((s.presentes||[]).includes(alumnoId)) { if(!u||s.fecha>u) u=s.fecha; } });
+  return u;
+}
+/* desde cuándo tiene el cinturón actual */
+function desdeCinturon(a){
+  if(a.historial && a.historial.length){
+    const ult=a.historial.slice().sort((x,y)=>x.fecha.localeCompare(y.fecha)).slice(-1)[0];
+    if(ult && ult.fecha) return ult.fecha;
+  }
+  return a.desde||a.creado||hoyISO();
+}
+/* ¿puede examinarse? */
+function elegibilidad(a){
+  const c=cintDe(a), sig=siguienteCint(c);
+  const d0=desdeCinturon(a), hoy=hoyISO();
+  const clases=clasesDesde(a.id,d0);
+  const meses=mesesEntre(d0,hoy);
+  const tot=(c&&c.tecnicas||[]).length;
+  const hechas=(c&&c.tecnicas||[]).filter(t=>(a.tecnicas||[]).includes(t.id)).length;
+  const faltanClases=Math.max(0,(c&&c.clases||0)-clases);
+  const faltanMeses=Math.max(0,(c&&c.meses||0)-meses);
+  const faltanTec=Math.max(0,tot-hechas);
+  return {c,sig,clases,meses,tot,hechas,faltanClases,faltanMeses,faltanTec,
+    listo: !sig? false : (faltanClases===0 && faltanMeses===0 && faltanTec===0),
+    casi: !sig? false : (faltanClases+faltanMeses+faltanTec)>0 && (faltanClases<=4 && faltanMeses<=1 && faltanTec<=2)};
+}
+
+/* ---------- arranque ---------- */
+document.addEventListener('DOMContentLoaded',()=>{
+  D=cargar();
+  if(D && D.clave){ $('login-entrar').style.display='block'; setTimeout(()=>$('cl0').focus(),250);
+    if(D.config && D.config.huella && D.config.huella.activa)
+      huellaDisponible().then(ok=>{ if(ok) $('login-huella').style.display='block'; });
+  } else { $('login-nuevo').style.display='block'; }
+  $('btn-crear-clave').onclick=crearClave;
+  $('btn-entrar').onclick=entrar;
+  $('btn-huella').onclick=entrarConHuella;
+  $('cl0').addEventListener('keydown',e=>{if(e.key==='Enter')entrar();});
+  $('cl2').addEventListener('keydown',e=>{if(e.key==='Enter')crearClave();});
+  $('btn-menu').onclick=menu;
+  document.querySelectorAll('#abajo button').forEach(b=>b.onclick=()=>ir(b.dataset.ir));
+});
+
+function menu(){
+  const items=[
+    ['🎓','Listos para examen','elegibles'],['📋','Exámenes','examenes'],
+    ['🥋','Cinturones y técnicas','cinturones'],['🕕','Grupos y horarios','grupos'],
+    ['👨‍👩‍👧','Familias','familias'],['📊','Cómo va el dojo','reportes'],
+    ['💾','Backup y seguridad','backup'],['📖','Manual de uso','manual'],['📓','Bitácora','bitacora']
+  ];
+  hoja('Menú', items.map(i=>
+    `<button class="op" onclick="cerrarHoja();ir('${i[2]}')"><span>${i[0]} ${esc(i[1])}</span><span class="fl">›</span></button>`
+  ).join('')+`<div class="mini" style="margin-top:14px;text-align:center">Versión ${VERSION_APP}</div>`);
+}
+/* =========================== INICIO =========================== */
+function grupoDeHoy(){
+  const d=new Date().getDay();
+  const gs=D.grupos.filter(g=>g.activo!==false && (g.dias||[]).includes(d));
+  return gs.length?gs:D.grupos.filter(g=>g.activo!==false);
+}
+function seDespegan(){
+  const hoy=hoyISO(), out=[];
+  alumnosActivos().forEach(a=>{
+    const u=ultimaClase(a.id);
+    if(!u){ if(diasEntre(a.desde||hoy,hoy)>21) out.push({a,dias:diasEntre(a.desde,hoy),nunca:true}); return; }
+    const d=diasEntre(u,hoy);
+    if(d>=14) out.push({a,dias:d,nunca:false});
+  });
+  return out.sort((x,y)=>y.dias-x.dias);
+}
+PINTORES.inicio=()=>{
+  const hoy=hoyISO(), mk=mesActual();
+  const gs=grupoDeHoy();
+  const pend=deudoresDelMes(mk);
+  const desp=seDespegan();
+  const eleg=alumnosActivos().map(a=>({a,e:elegibilidad(a)})).filter(x=>x.e.listo);
+  let h='';
+  if(!D.alumnos.length){
+    h+=`<div class="card"><div class="hd">Primer paso</div>
+      <div class="mini" style="margin-bottom:9px">Agrega tus alumnos. Después de eso, pasar lista te toma segundos.</div>
+      <button class="btn pri" onclick="editarAlumno()">➕ Agregar mi primer alumno</button></div>`;
+  }
+  if(eleg.length) h+=`<div class="nota ok">🎓 <b>${eleg.length}</b> alumno${eleg.length>1?'s':''} listo${eleg.length>1?'s':''} para examen.
+    <button class="btn chico" style="margin-top:7px" onclick="ir('elegibles')">Ver quiénes</button></div>`;
+  if(pend.length) h+=`<div class="nota al">💵 <b>${pend.length}</b> deben la cuota de ${esc(mesBonito(mk))}.
+    <button class="btn chico" style="margin-top:7px" onclick="ir('cuotas')">Ver quiénes</button></div>`;
+  if(desp.length) h+=`<div class="nota al">⚠️ ${desp.slice(0,3).map(x=>esc(nombreAlumno(x.a))+' ('+x.dias+' días)').join(' · ')}${desp.length>3?' … y '+(desp.length-3)+' más':''} sin venir.
+    <button class="btn chico" style="margin-top:7px" onclick="ir('reportes')">Ver todos</button></div>`;
+
+  h+=`<div class="card"><div class="hd">🥋 Clases de hoy · ${DIAS[new Date().getDay()]}</div>`;
+  if(!gs.length) h+='<div class="vacio-msj">No hay grupos configurados.</div>';
+  gs.forEach(g=>{
+    const n=alumnosDeGrupo(g.id).length;
+    const ses=D.asistencia.find(s=>s.fecha===hoy&&s.grupoId===g.id);
+    h+=`<button class="fila" style="width:100%;text-align:left" onclick="abrirLista('${g.id}')">
+      <div class="izq"><div class="n1">${esc(g.nombre)}${ses?`<span class="chip v">lista pasada</span>`:''}</div>
+      <div class="n2">${horarioGrupo(g)} · ${n} alumno${n===1?'':'s'}${ses?' · vinieron '+(ses.presentes||[]).length:''}</div></div>
+      <span class="fl gris">›</span></button>`;
+  });
+  h+=`</div>`;
+
+  const act=alumnosActivos().length;
+  const cob=cobradoDelMes(mk), esp=esperadoDelMes(mk);
+  h+=`<div class="card">
+    <div class="hd">📊 ${esc(mesBonito(mk))}</div>
+    <div class="fila"><span>Alumnos activos</span><span class="mono">${act}</span></div>
+    <div class="fila"><span>Cobrado</span><span class="mono verde">${money(cob)}</span></div>
+    <div class="fila"><span>Falta</span><span class="mono ${esp-cob>0?'ambar':'verde'}">${money(Math.max(0,esp-cob))}</span></div>
+  </div>
+  <div class="rejilla">
+    <button class="btn" onclick="ir('lista')"><span class="e">✓</span>Pasar lista</button>
+    <button class="btn" onclick="ir('alumnos')"><span class="e">👥</span>Alumnos</button>
+    <button class="btn" onclick="ir('elegibles')"><span class="e">🎓</span>Listos para examen</button>
+    <button class="btn" onclick="ir('cuotas')"><span class="e">💵</span>Cuotas</button>
+    <button class="btn" onclick="ir('reportes')"><span class="e">📊</span>Cómo va el dojo</button>
+    <button class="btn" onclick="ir('manual')"><span class="e">📖</span>Manual</button>
+  </div>`;
+  $('v-inicio').innerHTML=h;
+};
+
+/* =========================== PASAR LISTA =========================== */
+let LISTA={grupoId:'',fecha:'',presentes:[]};
+function abrirLista(gid){
+  const g=porId(D.grupos,gid)||D.grupos[0];
+  if(!g) return toast('Primero crea un grupo.');
+  const f=hoyISO();
+  const ses=D.asistencia.find(s=>s.fecha===f&&s.grupoId===g.id);
+  LISTA={grupoId:g.id,fecha:f,presentes:ses?(ses.presentes||[]).slice():[]};
+  ir('lista');
+}
+PINTORES.lista=()=>{
+  if(!D.grupos.length){
+    $('v-lista').innerHTML=`<div class="card"><div class="vacio-msj">Todavía no hay grupos.</div>
+      <button class="btn pri" onclick="ir('grupos')">Crear un grupo</button></div>`; return;
+  }
+  if(!porId(D.grupos,LISTA.grupoId)){ LISTA.grupoId=D.grupos[0].id; LISTA.fecha=LISTA.fecha||hoyISO(); }
+  const g=porId(D.grupos,LISTA.grupoId);
+  const ses=D.asistencia.find(s=>s.fecha===LISTA.fecha&&s.grupoId===g.id);
+  const als=alumnosDeGrupo(g.id).sort((a,b)=>nombreAlumno(a).localeCompare(nombreAlumno(b)));
+  const pres=LISTA.presentes.length;
+  $('v-lista').innerHTML=`
+  <div class="card tight">
+    <div class="dosc">
+      <div class="campo" style="margin:0"><label>Grupo</label>
+        <select onchange="cambiarGrupoLista(this.value)">
+          ${D.grupos.map(x=>`<option value="${x.id}"${x.id===g.id?' selected':''}>${esc(x.nombre)}</option>`).join('')}
+        </select></div>
+      <div class="campo" style="margin:0"><label>Día</label>
+        <input type="date" value="${LISTA.fecha}" onchange="cambiarFechaLista(this.value)"></div>
+    </div>
+    <div class="mini" style="margin-top:6px">${horarioGrupo(g)}${ses?' · ya pasaste lista este día':''}</div>
+  </div>
+  <div class="card">
+    <div class="hd">${als.length} alumno${als.length===1?'':'s'} · presentes ${pres}</div>
+    ${als.length?`<div class="caras">${als.map(a=>{
+      const c=cintDe(a), on=LISTA.presentes.includes(a.id);
+      return `<button class="cara ${on?'pres':''}" onclick="marcar('${a.id}')">
+        ${on?'<span class="tick">✅</span>':''}
+        <div class="foto" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="nom">${esc(a.nombre)}</div>
+        <div class="cint">${cintaHTML(c,true)}${puntosHTML(a.rayas)}</div>
+      </button>`;}).join('')}</div>`
+      :'<div class="vacio-msj">Este grupo no tiene alumnos todavía.</div>'}
+  </div>
+  ${als.length?`<div class="dosc">
+    <button class="btn" onclick="marcarTodos(true)">Marcar todos</button>
+    <button class="btn" onclick="marcarTodos(false)">Quitar todos</button>
+  </div>
+  <button class="btn pri" style="margin-top:8px" onclick="guardarLista()">
+    ${ses?'GUARDAR CAMBIOS':'GUARDAR LA LISTA'} · ${pres} de ${als.length}</button>`:''}
+  ${ses?`<button class="btn peligro" style="margin-top:8px" onclick="borrarLista()">🗑️ Borrar la lista de este día</button>`:''}`;
+};
+function cambiarGrupoLista(gid){
+  LISTA.grupoId=gid;
+  const s=D.asistencia.find(x=>x.fecha===LISTA.fecha&&x.grupoId===gid);
+  LISTA.presentes=s?(s.presentes||[]).slice():[];
+  PINTORES.lista();
+}
+function cambiarFechaLista(f){
+  if(!f) return;
+  LISTA.fecha=f;
+  const s=D.asistencia.find(x=>x.fecha===f&&x.grupoId===LISTA.grupoId);
+  LISTA.presentes=s?(s.presentes||[]).slice():[];
+  PINTORES.lista();
+}
+function marcar(id){
+  const i=LISTA.presentes.indexOf(id);
+  if(i>=0) LISTA.presentes.splice(i,1); else LISTA.presentes.push(id);
+  PINTORES.lista();
+}
+function marcarTodos(si){
+  LISTA.presentes = si? alumnosDeGrupo(LISTA.grupoId).map(a=>a.id) : [];
+  PINTORES.lista();
+}
+function guardarLista(){
+  const g=porId(D.grupos,LISTA.grupoId);
+  let s=D.asistencia.find(x=>x.fecha===LISTA.fecha&&x.grupoId===LISTA.grupoId);
+  if(s){ s.presentes=LISTA.presentes.slice(); log('Cambió la lista de '+g.nombre+' del '+LISTA.fecha); }
+  else { D.asistencia.push({id:uid(),fecha:LISTA.fecha,grupoId:LISTA.grupoId,presentes:LISTA.presentes.slice()});
+    log('Pasó lista de '+g.nombre+' el '+LISTA.fecha+': '+LISTA.presentes.length+' presentes'); }
+  guardar(); toast('Lista guardada'); pintar();
+}
+async function borrarLista(){
+  const s=D.asistencia.find(x=>x.fecha===LISTA.fecha&&x.grupoId===LISTA.grupoId);
+  if(!s) return;
+  if(!confirm('¿Borrar la lista de este día?')) return;
+  if(!await confirmarDueno('borrar la lista del '+fLarga(LISTA.fecha))) return;
+  D.asistencia=D.asistencia.filter(x=>x.id!==s.id);
+  LISTA.presentes=[]; log('Borró la lista del '+LISTA.fecha);
+  guardar(); toast('Borrada'); pintar();
+}
+
+/* =========================== ALUMNOS =========================== */
+let FA={q:'',grupo:'',ver:'activos'};
+PINTORES.alumnos=()=>{
+  let als=D.alumnos.slice();
+  if(FA.ver==='activos') als=als.filter(a=>a.activo!==false);
+  if(FA.ver==='inactivos') als=als.filter(a=>a.activo===false);
+  if(FA.grupo) als=als.filter(a=>a.grupoId===FA.grupo);
+  if(FA.q){ const n=norm(FA.q);
+    als=als.filter(a=>norm([nombreAlumno(a),a.tutor1n,a.tutor1t,a.tutor2n,(cintDe(a)||{}).nombre].join(' ')).includes(n)); }
+  als.sort((a,b)=>nombreAlumno(a).localeCompare(nombreAlumno(b)));
+  $('v-alumnos').innerHTML=`
+  <input type="text" placeholder="Buscar alumno o encargado…" value="${esc(FA.q)}"
+    oninput="FA.q=this.value;PINTORES.alumnos()" style="margin-bottom:9px">
+  <div class="pills">
+    <button class="pill ${!FA.grupo?'sel':''}" onclick="FA.grupo='';PINTORES.alumnos()">Todos</button>
+    ${D.grupos.map(g=>`<button class="pill ${FA.grupo===g.id?'sel':''}" onclick="FA.grupo='${g.id}';PINTORES.alumnos()">${esc(g.nombre)}</button>`).join('')}
+  </div>
+  <div class="pills">
+    ${[['activos','Activos'],['inactivos','Se fueron'],['todos','Todos']].map(v=>
+      `<button class="pill ${FA.ver===v[0]?'sel':''}" onclick="FA.ver='${v[0]}';PINTORES.alumnos()">${v[1]}</button>`).join('')}
+  </div>
+  <div class="card">
+    <div class="hd">${als.length} alumno${als.length===1?'':'s'}</div>
+    ${als.length?als.map(a=>{
+      const c=cintDe(a), deuda=debeDelMes(a,mesActual());
+      return `<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${a.id}')">
+        <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="izq"><div class="n1">${esc(nombreAlumno(a))}${a.activo===false?'<span class="chip">se fue</span>':''}${deuda>0?'<span class="chip a">debe</span>':''}</div>
+        <div class="n2">${cintaHTML(c,true)} ${esc(c?c.nombre:'')} ${puntosHTML(a.rayas)} · ${esc(nombreGrupo(a.grupoId))}</div></div>
+        <span class="fl gris">›</span></button>`;}).join('')
+      :'<div class="vacio-msj">Nadie con ese filtro.</div>'}
+  </div>
+  <button class="btn pri" onclick="editarAlumno()">➕ Agregar alumno</button>`;
+};
+
+let ALUMNO_ACTUAL='';
+function abrirAlumno(id){ ALUMNO_ACTUAL=id; ir('alumno'); }
+PINTORES.alumno=()=>{
+  const a=porId(D.alumnos,ALUMNO_ACTUAL);
+  if(!a){ ir('alumnos'); return; }
+  const c=cintDe(a), e=elegibilidad(a);
+  const tot=totalClases(a.id), ult=ultimaClase(a.id);
+  const ult8=asistenciaReciente(a.id,8);
+  const deuda=debeDelMes(a,mesActual());
+  const fam=porId(D.familias,a.familiaId);
+  const hist=(a.historial||[]).slice().sort((x,y)=>y.fecha.localeCompare(x.fecha));
+  $('v-alumno').innerHTML=`
+  <button class="btn chico" style="margin-bottom:9px" onclick="ir('alumnos')">‹ Todos los alumnos</button>
+  <div class="card">
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="avatar" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:600">${esc(nombreAlumno(a))}</div>
+        <div class="n2">${cintaHTML(c)} ${esc(c?c.nombre:'')} ${puntosHTML(a.rayas)}</div>
+        <div class="mini">${esc(nombreGrupo(a.grupoId))}${a.desde?' · desde '+fLarga(a.desde):''}</div>
+      </div>
+    </div>
+    ${a.activo===false?'<div class="nota al" style="margin-top:9px">Este alumno está marcado como que se fue.</div>':''}
+    <div class="dosc" style="margin-top:10px">
+      <button class="btn chico" style="width:auto" onclick="editarAlumno('${a.id}')">✏️ Modificar</button>
+      <button class="btn chico" style="width:auto" onclick="tomarFotoAlumno('${a.id}')">📷 Foto</button>
+    </div>
+  </div>
+
+  ${(a.tutor1n||a.tutor2n)?`<div class="card"><div class="hd">👨‍👩‍👧 Encargados</div>
+    ${a.tutor1n?`<div class="fila"><div class="izq"><div class="n1">${esc(a.tutor1n)}</div>
+      ${a.tutor1t?`<div class="n2">${esc(a.tutor1t)}</div>`:''}</div>
+      ${a.tutor1t?`<a class="btn chico" style="width:auto" href="tel:${esc(a.tutor1t)}">📞</a>`:''}</div>`:''}
+    ${a.tutor2n?`<div class="fila"><div class="izq"><div class="n1">${esc(a.tutor2n)}</div>
+      ${a.tutor2t?`<div class="n2">${esc(a.tutor2t)}</div>`:''}</div>
+      ${a.tutor2t?`<a class="btn chico" style="width:auto" href="tel:${esc(a.tutor2t)}">📞</a>`:''}</div>`:''}
+    ${fam?`<div class="fila"><span class="gris">Familia</span><span>${esc(fam.nombre)}</span></div>`:''}
+  </div>`:''}
+
+  <div class="card">
+    <div class="hd">📊 Cómo va</div>
+    <div class="fila"><span>Clases en total</span><span class="mono">${tot}</span></div>
+    <div class="fila"><span>Con este cinturón</span><span class="mono">${e.clases} clases · ${e.meses} mes${e.meses===1?'':'es'}</span></div>
+    <div class="fila"><span>Última vez que vino</span><span class="mono">${ult?fLarga(ult)+' ('+diasEntre(ult,hoyISO())+'d)':'nunca'}</span></div>
+    <div class="fila"><span>De las últimas 8 clases</span><span class="mono">${ult8.vino} de ${ult8.total}</span></div>
+    <div class="barra-b ${ult8.total&&ult8.vino/ult8.total>=0.6?'v':'a'}"><i style="width:${ult8.total?Math.round(ult8.vino/ult8.total*100):0}%"></i></div>
+    ${deuda>0?`<div class="nota al" style="margin-top:9px">💵 Debe ${money(deuda)} de ${esc(mesBonito(mesActual()))}
+      <button class="btn chico" style="margin-top:6px" onclick="registrarPago('${a.id}')">Registrar pago</button></div>`
+      :`<div class="nota ok" style="margin-top:9px">💵 ${esc(mesBonito(mesActual()))} al día</div>`}
+  </div>
+
+  <div class="card">
+    <div class="hd">🎓 Para el próximo cinturón</div>
+    ${e.sig?`
+      <div class="fila"><div class="izq"><div class="n1">${cintaHTML(c,true)} → ${cintaHTML(e.sig,true)} ${esc(e.sig.nombre)}</div></div>
+        ${e.listo?'<span class="chip v">LISTO</span>':(e.casi?'<span class="chip a">casi</span>':'')}</div>
+      <div class="fila"><span class="gris">Clases</span><span class="mono ${e.faltanClases?'ambar':'verde'}">${e.clases} de ${c.clases}${e.faltanClases?' · faltan '+e.faltanClases:''}</span></div>
+      <div class="fila"><span class="gris">Tiempo</span><span class="mono ${e.faltanMeses?'ambar':'verde'}">${e.meses} de ${c.meses} meses${e.faltanMeses?' · falta '+e.faltanMeses:''}</span></div>
+      <div class="fila"><span class="gris">Técnicas</span><span class="mono ${e.faltanTec?'ambar':'verde'}">${e.hechas} de ${e.tot}</span></div>
+      <button class="btn chico" style="margin-top:8px" onclick="verTecnicas('${a.id}')">Marcar técnicas</button>`
+      :'<div class="mini">Ya está en el último cinturón de la lista.</div>'}
+  </div>
+
+  <div class="card">
+    <div class="hd">🥋 Su camino</div>
+    ${hist.length?hist.map(x=>{const cc=porId(D.cinturones,x.cinturonId);
+      return `<div class="fila"><div class="izq"><div class="n1">${cintaHTML(cc,true)} ${esc(cc?cc.nombre:'')}</div>
+        ${x.nota?`<div class="n2">${esc(x.nota)}</div>`:''}</div>
+        <span class="mono gris">${fLarga(x.fecha)}</span></div>`;}).join('')
+      :'<div class="mini">Todavía no tiene exámenes anotados.</div>'}
+    <button class="btn chico" style="margin-top:8px" onclick="promoverAlumno('${a.id}')">➕ Anotar promoción a mano</button>
+  </div>
+
+  ${a.nota?`<div class="card"><div class="hd">📝 Nota</div><div class="mini">${esc(a.nota)}</div></div>`:''}
+  <button class="btn" onclick="archivarAlumno('${a.id}')">${a.activo===false?'Reactivar alumno':'Marcar que se fue'}</button>
+  <button class="btn peligro" style="margin-top:8px" onclick="borrarAlumno('${a.id}')">🗑️ Borrar alumno</button>`;
+};
+function asistenciaReciente(alumnoId,n){
+  const a=porId(D.alumnos,alumnoId); if(!a) return {vino:0,total:0};
+  const ses=D.asistencia.filter(s=>s.grupoId===a.grupoId).sort((x,y)=>y.fecha.localeCompare(x.fecha)).slice(0,n);
+  return {vino:ses.filter(s=>(s.presentes||[]).includes(alumnoId)).length, total:ses.length};
+}
+function editarAlumno(id){
+  const a=id?porId(D.alumnos,id):{id:'',nombre:'',apellido:'',grupoId:(D.grupos[0]||{}).id||'',
+    cinturonId:(D.cinturones[0]||{}).id||'',rayas:0,desde:hoyISO(),cuota:'',nota:'',
+    tutor1n:'',tutor1t:'',tutor2n:'',tutor2t:'',familiaId:'',activo:true,nacim:''};
+  const cints=D.cinturones.slice().sort((x,y)=>x.orden-y.orden);
+  hoja(id?'Modificar alumno':'Agregar alumno',`
+   <div class="dosc">
+     <div class="campo"><label>Nombre</label><input id="al-nom" value="${esc(a.nombre)}"></div>
+     <div class="campo"><label>Apellido</label><input id="al-ape" value="${esc(a.apellido||'')}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Grupo</label><select id="al-grupo">
+       ${D.grupos.map(g=>`<option value="${g.id}"${g.id===a.grupoId?' selected':''}>${esc(g.nombre)} · ${horarioGrupo(g)}</option>`).join('')}
+     </select></div>
+     <div class="campo"><label>Empezó el</label><input type="date" id="al-desde" value="${a.desde||hoyISO()}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Cinturón</label><select id="al-cint">
+       ${cints.map(c=>`<option value="${c.id}"${c.id===a.cinturonId?' selected':''}>${esc(c.nombre)}</option>`).join('')}
+     </select></div>
+     <div class="campo"><label>Rayas</label><input type="number" id="al-rayas" min="0" max="10" value="${a.rayas||0}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="al-nacim" value="${a.nacim||''}"></div>
+     <div class="campo"><label>Cuota al mes</label><input type="number" step="0.01" id="al-cuota" value="${a.cuota===''||a.cuota===undefined?'':a.cuota}" placeholder="${D.config.cuota}"></div>
+   </div>
+   <div class="mini" style="margin-bottom:10px">Si dejas la cuota en blanco, usa la cuota general de ${money(D.config.cuota)}.</div>
+   <div class="hd">Encargados</div>
+   <div class="dosc">
+     <div class="campo"><label>Nombre</label><input id="al-t1n" value="${esc(a.tutor1n||'')}"></div>
+     <div class="campo"><label>Teléfono</label><input type="tel" id="al-t1t" value="${esc(a.tutor1t||'')}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Segundo</label><input id="al-t2n" value="${esc(a.tutor2n||'')}"></div>
+     <div class="campo"><label>Teléfono</label><input type="tel" id="al-t2t" value="${esc(a.tutor2t||'')}"></div>
+   </div>
+   <div class="campo"><label>Familia (para hermanos)</label><select id="al-fam">
+     <option value="">— ninguna —</option>
+     ${D.familias.map(f=>`<option value="${f.id}"${f.id===a.familiaId?' selected':''}>${esc(f.nombre)}</option>`).join('')}
+   </select></div>
+   <div class="campo"><label>Nota</label><input id="al-nota" value="${esc(a.nota||'')}" placeholder="alergias, permisos, lo que sea"></div>
+   <div class="campo"><label>Foto</label><input type="file" accept="image/*" capture="user" id="al-foto" onchange="fotoBorrador(this)">
+     <div id="al-foto-prev">${a.foto?`<img src="${a.foto}" class="foto-prev">`:''}</div></div>
+   <button class="btn pri" onclick="guardarAlumno('${id||''}',false)">Guardar</button>
+   ${id?'':`<button class="btn" style="margin-top:8px" onclick="guardarAlumno('',true)">Guardar y agregar otro</button>`}`);
+  FOTO_TMP = id ? (a.foto||'') : '';
+}
+let FOTO_TMP='';
+function fotoBorrador(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  comprimirFoto(f,d=>{ FOTO_TMP=d; const p=$('al-foto-prev'); if(p) p.innerHTML=`<img src="${d}" class="foto-prev">`; });
+}
+function comprimirFoto(file,cb){
+  const fr=new FileReader();
+  fr.onload=e=>{ const img=new Image();
+    img.onload=()=>{
+      const max=380, s=Math.min(1,max/Math.max(img.width,img.height));
+      const w=Math.round(img.width*s), h=Math.round(img.height*s);
+      const lado=Math.min(w,h);
+      const cv=document.createElement('canvas'); cv.width=lado; cv.height=lado;
+      const cx=cv.getContext('2d');
+      cx.drawImage(img,(w-lado)/2/s,(h-lado)/2/s,lado/s,lado/s,0,0,lado,lado);
+      cb(cv.toDataURL('image/jpeg',0.62));
+    };
+    img.src=e.target.result; };
+  fr.readAsDataURL(file);
+}
+function tomarFotoAlumno(id){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.capture='user';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+    comprimirFoto(f,d=>{ const a=porId(D.alumnos,id); a.foto=d;
+      log('Le puso foto a '+nombreAlumno(a)); guardar(); toast('Foto guardada'); pintar(); }); };
+  inp.click();
+}
+function guardarAlumno(id,otroMas){
+  const n=($('al-nom').value||'').trim();
+  if(!n) return toast('Escribe al menos el nombre.');
+  const o={nombre:n, apellido:($('al-ape').value||'').trim(), grupoId:$('al-grupo').value,
+    desde:$('al-desde').value||hoyISO(), cinturonId:$('al-cint').value,
+    rayas:Number($('al-rayas').value)||0, nacim:$('al-nacim').value||'',
+    cuota: $('al-cuota').value===''? '' : n2($('al-cuota').value),
+    tutor1n:($('al-t1n').value||'').trim(), tutor1t:($('al-t1t').value||'').trim(),
+    tutor2n:($('al-t2n').value||'').trim(), tutor2t:($('al-t2t').value||'').trim(),
+    familiaId:$('al-fam').value, nota:($('al-nota').value||'').trim()};
+  if(FOTO_TMP) o.foto=FOTO_TMP;
+  if(id){ Object.assign(porId(D.alumnos,id),o); log('Modificó a '+n); }
+  else { D.alumnos.push({id:uid(),activo:true,historial:[],tecnicas:[],creado:hoyISO(),...o});
+    log('Agregó al alumno '+n); }
+  if(!guardar()) return;
+  toast('Guardado'); FOTO_TMP='';
+  if(otroMas){ cerrarHoja(); editarAlumno(); }
+  else { cerrarHoja(); if(id){ ALUMNO_ACTUAL=id; ir('alumno'); } else ir('alumnos'); }
+}
+function archivarAlumno(id){
+  const a=porId(D.alumnos,id); a.activo=a.activo===false;
+  log((a.activo?'Reactivó a ':'Marcó que se fue ')+nombreAlumno(a));
+  guardar(); toast(a.activo?'Reactivado':'Marcado que se fue'); pintar();
+}
+async function borrarAlumno(id){
+  const a=porId(D.alumnos,id);
+  const cl=totalClases(id), pg=D.pagos.filter(p=>p.alumnoId===id).length;
+  if(cl||pg) return alert('No se puede borrar: '+nombreAlumno(a)+' tiene '+cl+' clase(s) y '+pg+' pago(s) anotados.\n\nUsa "Marcar que se fue" — así el historial se queda intacto.');
+  if(!confirm('¿Borrar a '+nombreAlumno(a)+'?')) return;
+  if(!await confirmarDueno('borrar al alumno '+nombreAlumno(a))) return;
+  D.alumnos=D.alumnos.filter(x=>x.id!==id);
+  log('Borró al alumno '+nombreAlumno(a));
+  guardar(); toast('Borrado'); ir('alumnos');
+}
+function verTecnicas(id){
+  const a=porId(D.alumnos,id), c=cintDe(a);
+  const ts=(c&&c.tecnicas)||[];
+  hoja('Técnicas de '+(c?c.nombre:''),
+   ts.length? ts.map(t=>{
+     const on=(a.tecnicas||[]).includes(t.id);
+     return `<button class="op" onclick="marcarTecnica('${a.id}','${t.id}')">
+       <span>${on?'✅':'⬜'} ${esc(t.nombre)}</span></button>`;}).join('')
+     +`<div class="mini" style="margin-top:12px">Toca cada técnica cuando ya la domine. Esto cuenta para el examen.</div>`
+    :'<div class="vacio-msj">Este cinturón no tiene técnicas puestas. Agrégalas en Cinturones y técnicas.</div>');
+}
+function marcarTecnica(alumnoId,tecId){
+  const a=porId(D.alumnos,alumnoId);
+  a.tecnicas=a.tecnicas||[];
+  const i=a.tecnicas.indexOf(tecId);
+  if(i>=0) a.tecnicas.splice(i,1); else a.tecnicas.push(tecId);
+  guardar(); verTecnicas(alumnoId);
+}
+/* =========================== CUOTAS =========================== */
+function cuotaDe(a){
+  let base = (a.cuota===''||a.cuota===undefined||a.cuota===null) ? n2(D.config.cuota) : n2(a.cuota);
+  const f=porId(D.familias,a.familiaId);
+  if(f && Number(f.descuento)>0) base = n2(base*(1-Number(f.descuento)/100));
+  return base;
+}
+function pagadoDelMes(alumnoId,mk){
+  return n2(D.pagos.filter(p=>p.alumnoId===alumnoId && p.mes===mk).reduce((s,p)=>s+n2(p.monto),0));
+}
+function debeDelMes(a,mk){
+  if(a.activo===false) return 0;
+  if(a.desde && mesClave(a.desde) > mk) return 0;
+  return n2(Math.max(0, cuotaDe(a)-pagadoDelMes(a.id,mk)));
+}
+function deudoresDelMes(mk){
+  return alumnosActivos().filter(a=>debeDelMes(a,mk)>0)
+    .sort((x,y)=>debeDelMes(y,mk)-debeDelMes(x,mk));
+}
+function esperadoDelMes(mk){
+  return n2(alumnosActivos().filter(a=>!(a.desde&&mesClave(a.desde)>mk)).reduce((s,a)=>s+cuotaDe(a),0));
+}
+function cobradoDelMes(mk){ return n2(D.pagos.filter(p=>p.mes===mk).reduce((s,p)=>s+n2(p.monto),0)); }
+
+let CUOTA_MES='';
+PINTORES.cuotas=()=>{
+  if(!CUOTA_MES) CUOTA_MES=mesActual();
+  const mk=CUOTA_MES;
+  const esp=esperadoDelMes(mk), cob=cobradoDelMes(mk);
+  const deben=deudoresDelMes(mk);
+  const alDia=alumnosActivos().filter(a=>debeDelMes(a,mk)<=0);
+  const hoy=hoyISO();
+  const vence=mk+'-'+String(D.config.diaVence||5).padStart(2,'0');
+  $('v-cuotas').innerHTML=`
+  <div class="card tight">
+    <div class="campo" style="margin:0"><label>Mes</label>
+      <select onchange="CUOTA_MES=this.value;PINTORES.cuotas()">
+        ${mesesDisponibles().map(m=>`<option value="${m}"${m===mk?' selected':''}>${esc(mesBonito(m))}</option>`).join('')}
+      </select></div>
+  </div>
+  <div class="card">
+    <div class="hd">💵 ${esc(mesBonito(mk))}</div>
+    <div class="fila"><span>Cobrado</span><span class="big verde">${money(cob)}</span></div>
+    <div class="fila"><span>Falta</span><span class="big ${esp-cob>0?'ambar':'verde'}">${money(Math.max(0,esp-cob))}</span></div>
+    <div class="total"><span class="gris">Esperado de ${alumnosActivos().length} alumnos</span><b class="num">${money(esp)}</b></div>
+    <div class="barra-b v" style="margin-top:8px"><i style="width:${esp?Math.min(100,Math.round(cob/esp*100)):0}%"></i></div>
+  </div>
+  <div class="card">
+    <div class="hd">⚠️ Deben (${deben.length})</div>
+    ${deben.length?deben.map(a=>{
+      const d=debeDelMes(a,mk), dias=diasEntre(vence,hoy);
+      return `<div class="fila">
+        <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
+        <div class="n2">${money(d)}${mk===mesActual()?(dias>0?' · '+dias+' días de atraso':(dias===0?' · vence hoy':' · vence el '+(D.config.diaVence||5))):''}</div></div>
+        <div style="text-align:right">
+          <button class="btn chico" onclick="registrarPago('${a.id}')">Pagó</button>
+          ${(a.tutor1t||a.tutor2t)?`<a class="btn chico" style="margin-top:4px;display:block" href="sms:${esc(a.tutor1t||a.tutor2t)}">📲</a>`:''}
+        </div></div>`;}).join('')
+      :'<div class="nota ok">✅ Todos al día este mes.</div>'}
+  </div>
+  <div class="card">
+    <div class="hd">✅ Al día (${alDia.length})</div>
+    ${alDia.length?alDia.map(a=>`<div class="fila">
+      <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
+      <div class="n2">pagó ${money(pagadoDelMes(a.id,mk))}</div></div>
+      <button class="btn chico" onclick="verPagos('${a.id}')">Ver</button></div>`).join('')
+      :'<div class="vacio-msj">Nadie todavía.</div>'}
+  </div>
+  <button class="btn" onclick="ir('reportes')">📊 Ver el año completo</button>
+  <div class="card">
+    <div class="hd">Ajustes de cuota</div>
+    <div class="dosc">
+      <div class="campo"><label>Cuota general</label>
+        <input type="number" step="0.01" value="${D.config.cuota}" onchange="D.config.cuota=n2(this.value);guardar();PINTORES.cuotas()"></div>
+      <div class="campo"><label>Vence el día</label>
+        <input type="number" min="1" max="28" value="${D.config.diaVence||5}" onchange="D.config.diaVence=Number(this.value)||5;guardar();PINTORES.cuotas()"></div>
+    </div>
+    <div class="mini">Un alumno puede tener su propia cuota distinta en su ficha.</div>
+  </div>`;
+};
+function mesesDisponibles(){
+  const s=new Set([mesActual()]);
+  D.pagos.forEach(p=>s.add(p.mes));
+  const hoy=new Date();
+  for(let i=0;i<14;i++){ const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
+    s.add(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  return [...s].filter(Boolean).sort().reverse();
+}
+function registrarPago(alumnoId){
+  const a=porId(D.alumnos,alumnoId);
+  const mk=CUOTA_MES||mesActual();
+  const falta=debeDelMes(a,mk);
+  hoja('Pago de '+nombreAlumno(a),`
+   <div class="dosc">
+     <div class="campo"><label>Mes que paga</label><select id="pg-mes">
+       ${mesesDisponibles().map(m=>`<option value="${m}"${m===mk?' selected':''}>${esc(mesBonito(m))}</option>`).join('')}
+     </select></div>
+     <div class="campo"><label>Fecha</label><input type="date" id="pg-fecha" value="${hoyISO()}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Monto</label><input type="number" step="0.01" id="pg-monto" value="${falta>0?falta:cuotaDe(a)}"></div>
+     <div class="campo"><label>Cómo pagó</label><select id="pg-como">
+       ${['Efectivo','Cheque','Zelle','Tarjeta','Transferencia','Otro'].map(x=>`<option>${x}</option>`).join('')}
+     </select></div>
+   </div>
+   <div class="campo"><label>Nota</label><input id="pg-nota" placeholder="opcional"></div>
+   <button class="btn pri" onclick="guardarPago('${alumnoId}')">Guardar el pago</button>
+   <div class="mini" style="margin-top:9px">Su cuota es ${money(cuotaDe(a))}${falta>0?' · debe '+money(falta):' · ya está al día'}.</div>`);
+}
+function guardarPago(alumnoId){
+  const m=n2($('pg-monto').value);
+  if(!(m>0)) return toast('Escribe un monto mayor que cero.');
+  const a=porId(D.alumnos,alumnoId);
+  D.pagos.push({id:uid(),alumnoId,mes:$('pg-mes').value,fecha:$('pg-fecha').value||hoyISO(),
+    monto:m,metodo:$('pg-como').value,nota:($('pg-nota').value||'').trim()});
+  log('Pago de '+nombreAlumno(a)+': '+money(m)+' de '+mesBonito($('pg-mes').value));
+  guardar(); cerrarHoja(); toast('Pago guardado'); pintar();
+}
+function verPagos(alumnoId){
+  const a=porId(D.alumnos,alumnoId);
+  const ps=D.pagos.filter(p=>p.alumnoId===alumnoId).sort((x,y)=>y.fecha.localeCompare(x.fecha));
+  hoja('Pagos de '+nombreAlumno(a),
+   (ps.length?ps.map(p=>`<div class="fila"><div class="izq">
+      <div class="n1">${esc(mesBonito(p.mes))}</div>
+      <div class="n2">${fLarga(p.fecha)} · ${esc(p.metodo||'')}${p.nota?' · '+esc(p.nota):''}</div></div>
+      <div style="text-align:right"><div class="mono verde">${money(p.monto)}</div>
+      <button class="btn chico peligro" onclick="borrarPago('${p.id}','${alumnoId}')">🗑️</button></div></div>`).join('')
+    :'<div class="vacio-msj">Todavía no tiene pagos anotados.</div>')
+   +`<button class="btn pri" style="margin-top:10px" onclick="cerrarHoja();registrarPago('${alumnoId}')">➕ Anotar un pago</button>`);
+}
+async function borrarPago(id,alumnoId){
+  const p=porId(D.pagos,id);
+  if(!confirm('¿Borrar este pago de '+money(p.monto)+'?')) return;
+  if(!await confirmarDueno('borrar un pago de '+money(p.monto))) return;
+  D.pagos=D.pagos.filter(x=>x.id!==id); log('Borró un pago de '+money(p.monto));
+  guardar(); toast('Borrado'); verPagos(alumnoId);
+}
+
+/* =========================== CINTURONES =========================== */
+PINTORES.cinturones=()=>{
+  const cs=D.cinturones.slice().sort((a,b)=>a.orden-b.orden);
+  $('v-cinturones').innerHTML=`
+  <div class="card">
+    <div class="hd">🥋 Cinturones y técnicas</div>
+    <div class="mini" style="margin-bottom:9px">Tú decides qué hace falta para cada uno. Con eso la app calcula sola quién puede examinarse.</div>
+    ${cs.map(c=>{
+      const n=alumnosActivos().filter(a=>a.cinturonId===c.id).length;
+      return `<button class="fila" style="width:100%;text-align:left" onclick="editarCinturon('${c.id}')">
+        <div class="izq"><div class="n1">${cintaHTML(c)} ${esc(c.nombre)}${n?`<span class="chip">${n}</span>`:''}</div>
+        <div class="n2">${c.clases} clases · ${c.meses} mes${c.meses===1?'':'es'} · ${(c.tecnicas||[]).length} técnicas · ${c.rayas} rayas</div></div>
+        <span class="fl gris">✏️</span></button>`;}).join('')}
+  </div>
+  <button class="btn pri" onclick="editarCinturon()">➕ Agregar cinturón</button>`;
+};
+function editarCinturon(id){
+  const c=id?porId(D.cinturones,id):{id:'',nombre:'',color:'#cccccc',
+    orden:D.cinturones.length,clases:20,meses:3,rayas:3,tecnicas:[]};
+  hoja(id?'Cinturón '+c.nombre:'Agregar cinturón',`
+   <div class="dosc">
+     <div class="campo"><label>Nombre</label><input id="ci-nom" value="${esc(c.nombre)}"></div>
+     <div class="campo"><label>Color</label><input type="color" id="ci-color" value="${esc(c.color)}" style="height:42px;padding:3px"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Clases que necesita</label><input type="number" id="ci-clases" value="${c.clases}"></div>
+     <div class="campo"><label>Meses que necesita</label><input type="number" id="ci-meses" value="${c.meses}"></div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Rayas de este cinturón</label><input type="number" id="ci-rayas" min="0" max="10" value="${c.rayas}"></div>
+     <div class="campo"><label>Orden</label><input type="number" id="ci-orden" value="${c.orden}"></div>
+   </div>
+   ${id?`<div class="hd" style="margin-top:12px">Técnicas (${(c.tecnicas||[]).length})</div>
+     <div id="ci-tecs">${(c.tecnicas||[]).map(t=>`<div class="fila"><span>${esc(t.nombre)}</span>
+       <button class="btn chico peligro" onclick="borrarTecnica('${c.id}','${t.id}')">🗑️</button></div>`).join('')}</div>
+     <div class="campo" style="margin-top:8px"><input id="ci-nueva" placeholder="Agregar una técnica…">
+       <button class="btn chico" style="margin-top:6px" onclick="agregarTecnica('${c.id}')">➕ Agregar técnica</button></div>`
+    :'<div class="mini">Guárdalo primero y después le agregas las técnicas.</div>'}
+   <button class="btn pri" style="margin-top:10px" onclick="guardarCinturon('${id||''}')">Guardar</button>
+   ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarCinturon('${id}')">🗑️ Borrar cinturón</button>`:''}`);
+}
+function guardarCinturon(id){
+  const n=($('ci-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  const o={nombre:n,color:$('ci-color').value,clases:Number($('ci-clases').value)||0,
+    meses:Number($('ci-meses').value)||0,rayas:Number($('ci-rayas').value)||0,
+    orden:Number($('ci-orden').value)||0};
+  if(id){ Object.assign(porId(D.cinturones,id),o); log('Modificó el cinturón '+n); }
+  else { D.cinturones.push({id:uid(),tecnicas:[],...o}); log('Agregó el cinturón '+n); }
+  guardar(); cerrarHoja(); toast('Guardado'); ir('cinturones');
+}
+function agregarTecnica(cid){
+  const n=($('ci-nueva').value||'').trim(); if(!n) return toast('Escribe la técnica.');
+  const c=porId(D.cinturones,cid); c.tecnicas=c.tecnicas||[];
+  c.tecnicas.push({id:uid(),nombre:n});
+  log('Agregó la técnica "'+n+'" a '+c.nombre);
+  guardar(); editarCinturon(cid);
+}
+function borrarTecnica(cid,tid){
+  const c=porId(D.cinturones,cid), t=(c.tecnicas||[]).find(x=>x.id===tid);
+  if(!confirm('¿Borrar la técnica "'+(t?t.nombre:'')+'"?')) return;
+  c.tecnicas=c.tecnicas.filter(x=>x.id!==tid);
+  D.alumnos.forEach(a=>{ a.tecnicas=(a.tecnicas||[]).filter(x=>x!==tid); });
+  log('Borró la técnica "'+(t?t.nombre:'')+'"');
+  guardar(); editarCinturon(cid);
+}
+async function borrarCinturon(id){
+  const c=porId(D.cinturones,id);
+  const n=D.alumnos.filter(a=>a.cinturonId===id).length;
+  if(n) return alert('No se puede borrar: '+n+' alumno(s) tienen el cinturón '+c.nombre+'.');
+  if(!confirm('¿Borrar el cinturón '+c.nombre+'?')) return;
+  if(!await confirmarDueno('borrar el cinturón '+c.nombre)) return;
+  D.cinturones=D.cinturones.filter(x=>x.id!==id); log('Borró el cinturón '+c.nombre);
+  guardar(); cerrarHoja(); toast('Borrado'); ir('cinturones');
+}
+
+/* =========================== LISTOS PARA EXAMEN =========================== */
+PINTORES.elegibles=()=>{
+  const todos=alumnosActivos().map(a=>({a,e:elegibilidad(a)}));
+  const listos=todos.filter(x=>x.e.listo);
+  const casi=todos.filter(x=>!x.e.listo && x.e.casi);
+  const fila=(x,ok)=>{
+    const {a,e}=x;
+    const falta=[e.faltanClases?e.faltanClases+' clases':'',
+      e.faltanMeses?e.faltanMeses+' mes'+(e.faltanMeses===1?'':'es'):'',
+      e.faltanTec?e.faltanTec+' técnica'+(e.faltanTec===1?'':'s'):''].filter(Boolean).join(' · ');
+    return `<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${a.id}')">
+      <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="izq"><div class="n1">${esc(nombreAlumno(a))} ${cintaHTML(e.c,true)}→${cintaHTML(e.sig,true)}</div>
+      <div class="n2">${ok?`${e.clases} clases · ${e.meses} meses · ${e.hechas}/${e.tot} técnicas`:'le falta '+esc(falta)}</div></div>
+      <span class="fl gris">›</span></button>`;
+  };
+  $('v-elegibles').innerHTML=`
+  <div class="card">
+    <div class="hd">🎓 Listos para examen (${listos.length})</div>
+    ${listos.length?listos.map(x=>fila(x,true)).join(''):'<div class="vacio-msj">Ninguno todavía.</div>'}
+    ${listos.length?`<button class="btn pri" style="margin-top:10px" onclick="nuevoExamen()">📋 Crear examen con estos</button>`:''}
+  </div>
+  <div class="card">
+    <div class="hd">⏳ Casi (${casi.length})</div>
+    ${casi.length?casi.map(x=>fila(x,false)).join(''):'<div class="vacio-msj">Nadie cerca por ahora.</div>'}
+  </div>
+  <div class="nota">Las reglas de cada cinturón (clases, meses y técnicas) las pones tú en
+    <b>Cinturones y técnicas</b>. La app solo cuenta.</div>`;
+};
+
+/* =========================== EXÁMENES =========================== */
+const CRITERIOS=['Kata','Kumite','Kihon','Espíritu'];
+PINTORES.examenes=()=>{
+  const ex=D.examenes.slice().sort((a,b)=>y=>0).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  $('v-examenes').innerHTML=`
+  <div class="card">
+    <div class="hd">📋 Exámenes</div>
+    ${ex.length?ex.map(x=>{
+      const pasa=(x.alumnos||[]).filter(y=>y.paso).length;
+      return `<button class="fila" style="width:100%;text-align:left" onclick="abrirExamen('${x.id}')">
+        <div class="izq"><div class="n1">${esc(x.nombre||'Examen')}${x.cerrado?'<span class="chip v">terminado</span>':'<span class="chip a">abierto</span>'}</div>
+        <div class="n2">${fLarga(x.fecha)} · ${(x.alumnos||[]).length} alumnos · ${pasa} pasaron</div></div>
+        <span class="fl gris">›</span></button>`;}).join('')
+      :'<div class="vacio-msj">Todavía no hay exámenes.</div>'}
+  </div>
+  <button class="btn pri" onclick="nuevoExamen()">➕ Nuevo examen</button>`;
+};
+function nuevoExamen(){
+  const listos=alumnosActivos().map(a=>({a,e:elegibilidad(a)})).filter(x=>x.e.listo);
+  hoja('Nuevo examen',`
+   <div class="dosc">
+     <div class="campo"><label>Nombre</label><input id="ex-nom" value="Examen de ${MESES[new Date().getMonth()+1]}"></div>
+     <div class="campo"><label>Fecha</label><input type="date" id="ex-fecha" value="${hoyISO()}"></div>
+   </div>
+   <div class="hd">¿Quiénes se examinan?</div>
+   <div id="ex-lista">${alumnosActivos().sort((a,b)=>nombreAlumno(a).localeCompare(nombreAlumno(b))).map(a=>{
+     const e=elegibilidad(a);
+     const marcado=listos.some(x=>x.a.id===a.id);
+     return `<label class="op" style="cursor:pointer">
+       <span><input type="checkbox" class="ex-chk" value="${a.id}" ${marcado?'checked':''}
+         style="width:auto;margin-right:9px">${esc(nombreAlumno(a))} ${cintaHTML(e.c,true)}${e.sig?'→'+cintaHTML(e.sig,true):''}
+         ${e.listo?'<span class="chip v">listo</span>':''}</span></label>`;}).join('')}</div>
+   <button class="btn pri" style="margin-top:12px" onclick="crearExamen()">Crear el examen</button>`);
+}
+function crearExamen(){
+  const ids=[...document.querySelectorAll('.ex-chk')].filter(c=>c.checked).map(c=>c.value);
+  if(!ids.length) return toast('Escoge al menos un alumno.');
+  const ex={id:uid(),nombre:($('ex-nom').value||'Examen').trim(),fecha:$('ex-fecha').value||hoyISO(),
+    cerrado:false, alumnos:ids.map(id=>{ const a=porId(D.alumnos,id), e=elegibilidad(a);
+      return {alumnoId:id, deId:(e.c||{}).id||'', aId:(e.sig||{}).id||'',
+        Kata:0,Kumite:0,Kihon:0,'Espíritu':0, paso:null, nota:''}; })};
+  D.examenes.push(ex);
+  log('Creó el examen "'+ex.nombre+'" con '+ids.length+' alumnos');
+  guardar(); cerrarHoja(); EXAMEN_ACTUAL=ex.id; ir('examen');
+}
+let EXAMEN_ACTUAL='';
+function abrirExamen(id){ EXAMEN_ACTUAL=id; ir('examen'); }
+PINTORES.examen=()=>{
+  const x=porId(D.examenes,EXAMEN_ACTUAL);
+  if(!x){ ir('examenes'); return; }
+  $('v-examen').innerHTML=`
+  <button class="btn chico" style="margin-bottom:9px" onclick="ir('examenes')">‹ Todos los exámenes</button>
+  <div class="card">
+    <div class="hd">📋 ${esc(x.nombre)}</div>
+    <div class="mini">${fLarga(x.fecha)} · ${(x.alumnos||[]).length} alumnos${x.cerrado?' · terminado':''}</div>
+  </div>
+  ${(x.alumnos||[]).map((al,i)=>{
+    const a=porId(D.alumnos,al.alumnoId); if(!a) return '';
+    const de=porId(D.cinturones,al.deId), aa=porId(D.cinturones,al.aId);
+    return `<div class="card">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:9px">
+        <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(nombreAlumno(a))}</div>
+        <div class="n2">${cintaHTML(de,true)} ${esc(de?de.nombre:'')} → ${cintaHTML(aa,true)} ${esc(aa?aa.nombre:'')}</div></div>
+        ${al.paso===true?'<span class="chip v">PASÓ</span>':(al.paso===false?'<span class="chip r">NO PASÓ</span>':'')}
+      </div>
+      ${CRITERIOS.map(k=>`<div style="margin-bottom:7px">
+        <div class="mini" style="margin-bottom:3px">${k}</div>
+        <div class="puntaje">${[1,2,3,4,5].map(v=>
+          `<button class="${al[k]===v?'sel':''}" onclick="puntuar('${x.id}',${i},'${k}',${v})">${v}</button>`).join('')}</div>
+      </div>`).join('')}
+      <div class="campo" style="margin-top:8px"><input placeholder="Nota del examen…" value="${esc(al.nota||'')}"
+        onchange="notaExamen('${x.id}',${i},this.value)"></div>
+      <div class="dosc">
+        <button class="btn" style="${al.paso===true?'background:#33503c;border-color:var(--verde);color:var(--verde)':''}"
+          onclick="decidir('${x.id}',${i},true)">✅ PASA</button>
+        <button class="btn" style="${al.paso===false?'background:#4e2c29;border-color:var(--rojo);color:var(--rojo)':''}"
+          onclick="decidir('${x.id}',${i},false)">❌ NO PASA</button>
+      </div>
+    </div>`;}).join('')}
+  ${!x.cerrado?`<button class="btn pri" onclick="cerrarExamen('${x.id}')">🏁 Terminar y promover a los que pasaron</button>`:
+    `<div class="nota ok">Este examen ya está terminado. Los que pasaron ya tienen su cinturón nuevo.</div>`}
+  <button class="btn peligro" style="margin-top:8px" onclick="borrarExamen('${x.id}')">🗑️ Borrar examen</button>`;
+};
+function puntuar(exId,i,k,v){
+  const x=porId(D.examenes,exId); if(x.cerrado) return toast('Este examen ya está terminado.');
+  x.alumnos[i][k]=v; guardar(); PINTORES.examen();
+}
+function notaExamen(exId,i,v){ const x=porId(D.examenes,exId); x.alumnos[i].nota=v; guardar(); }
+function decidir(exId,i,paso){
+  const x=porId(D.examenes,exId); if(x.cerrado) return toast('Este examen ya está terminado.');
+  x.alumnos[i].paso = x.alumnos[i].paso===paso ? null : paso;
+  guardar(); PINTORES.examen();
+}
+async function cerrarExamen(exId){
+  const x=porId(D.examenes,exId);
+  const sin=(x.alumnos||[]).filter(a=>a.paso===null).length;
+  if(sin && !confirm('Todavía hay '+sin+' alumno(s) sin decidir.\n\n¿Terminar de todos modos? A esos no les pasa nada.')) return;
+  if(!await confirmarDueno('terminar el examen y promover a los que pasaron')) return;
+  let n=0;
+  (x.alumnos||[]).forEach(al=>{
+    if(al.paso!==true) return;
+    const a=porId(D.alumnos,al.alumnoId); if(!a||!al.aId) return;
+    a.historial=a.historial||[];
+    a.historial.push({cinturonId:al.aId, fecha:x.fecha,
+      nota:CRITERIOS.map(k=>k+' '+(al[k]||'-')).join(' · ')+(al.nota?' · '+al.nota:'')});
+    a.cinturonId=al.aId; a.rayas=0; a.tecnicas=[];
+    n++;
+  });
+  x.cerrado=true;
+  log('Terminó el examen "'+x.nombre+'": '+n+' promovidos');
+  guardar(); toast(n+' promovidos'); pintar();
+}
+async function borrarExamen(exId){
+  const x=porId(D.examenes,exId);
+  if(!confirm('¿Borrar el examen "'+x.nombre+'"?\n\nLas promociones que ya se hicieron NO se deshacen.')) return;
+  if(!await confirmarDueno('borrar el examen '+x.nombre)) return;
+  D.examenes=D.examenes.filter(e=>e.id!==exId); log('Borró el examen "'+x.nombre+'"');
+  guardar(); toast('Borrado'); ir('examenes');
+}
+function promoverAlumno(id){
+  const a=porId(D.alumnos,id), c=cintDe(a), sig=siguienteCint(c);
+  if(!sig) return toast('Ya está en el último cinturón.');
+  hoja('Promover a '+nombreAlumno(a),`
+   <div class="nota">${cintaHTML(c,true)} ${esc(c.nombre)} → ${cintaHTML(sig,true)} <b>${esc(sig.nombre)}</b></div>
+   <div class="campo"><label>Fecha del examen</label><input type="date" id="pr-fecha" value="${hoyISO()}"></div>
+   <div class="campo"><label>Nota</label><input id="pr-nota" placeholder="opcional"></div>
+   <button class="btn pri" onclick="confirmarPromocion('${id}')">Promover</button>`);
+}
+function confirmarPromocion(id){
+  const a=porId(D.alumnos,id), c=cintDe(a), sig=siguienteCint(c);
+  a.historial=a.historial||[];
+  a.historial.push({cinturonId:sig.id,fecha:$('pr-fecha').value||hoyISO(),nota:($('pr-nota').value||'').trim()});
+  a.cinturonId=sig.id; a.rayas=0; a.tecnicas=[];
+  log('Promovió a '+nombreAlumno(a)+' a '+sig.nombre);
+  guardar(); cerrarHoja(); toast('Promovido a '+sig.nombre); pintar();
+}
+
+/* =========================== GRUPOS =========================== */
+PINTORES.grupos=()=>{
+  $('v-grupos').innerHTML=`
+  <div class="card">
+    <div class="hd">🕕 Grupos y horarios</div>
+    ${D.grupos.map(g=>{
+      const n=alumnosDeGrupo(g.id).length;
+      return `<button class="fila" style="width:100%;text-align:left" onclick="editarGrupo('${g.id}')">
+        <div class="izq"><div class="n1">${esc(g.nombre)}${g.activo===false?'<span class="chip">apagado</span>':''}</div>
+        <div class="n2">${horarioGrupo(g)} · ${(g.dias||[]).map(d=>DIA3[d]).join(' ')} · ${n} alumno${n===1?'':'s'}</div></div>
+        <span class="fl gris">✏️</span></button>`;}).join('')}
+  </div>
+  <button class="btn pri" onclick="editarGrupo()">➕ Agregar grupo</button>`;
+};
+function editarGrupo(id){
+  const g=id?porId(D.grupos,id):{id:'',nombre:'',desde:'18:00',hasta:'19:00',dias:[2,4],activo:true};
+  hoja(id?'Grupo '+g.nombre:'Agregar grupo',`
+   <div class="campo"><label>Nombre</label><input id="gr-nom" value="${esc(g.nombre)}" placeholder="Grupo 1"></div>
+   <div class="dosc">
+     <div class="campo"><label>Empieza</label><input type="time" id="gr-desde" value="${g.desde}"></div>
+     <div class="campo"><label>Termina</label><input type="time" id="gr-hasta" value="${g.hasta}"></div>
+   </div>
+   <div class="campo"><label>Días que entrena</label>
+     <div class="pills" id="gr-dias">${DIA3.map((d,i)=>
+       `<button type="button" class="pill ${(g.dias||[]).includes(i)?'sel':''}" data-d="${i}"
+         onclick="this.classList.toggle('sel')">${d}</button>`).join('')}</div></div>
+   <button class="btn pri" onclick="guardarGrupo('${id||''}')">Guardar</button>
+   ${id?`<button class="btn" style="margin-top:8px" onclick="apagarGrupo('${id}')">${g.activo===false?'Prender':'Apagar'} grupo</button>
+        <button class="btn peligro" style="margin-top:8px" onclick="borrarGrupo('${id}')">🗑️ Borrar grupo</button>`:''}`);
+}
+function guardarGrupo(id){
+  const n=($('gr-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  const dias=[...document.querySelectorAll('#gr-dias .pill.sel')].map(b=>Number(b.dataset.d));
+  const o={nombre:n,desde:$('gr-desde').value||'18:00',hasta:$('gr-hasta').value||'19:00',dias};
+  if(id){ Object.assign(porId(D.grupos,id),o); log('Modificó el grupo '+n); }
+  else { D.grupos.push({id:uid(),activo:true,...o}); log('Agregó el grupo '+n); }
+  guardar(); cerrarHoja(); toast('Guardado'); ir('grupos');
+}
+function apagarGrupo(id){ const g=porId(D.grupos,id); g.activo=g.activo===false;
+  log((g.activo?'Prendió':'Apagó')+' el grupo '+g.nombre); guardar(); cerrarHoja(); pintar(); }
+async function borrarGrupo(id){
+  const g=porId(D.grupos,id);
+  const n=D.alumnos.filter(a=>a.grupoId===id).length;
+  if(n) return alert('No se puede borrar: '+n+' alumno(s) están en '+g.nombre+'.\n\nApágalo o muévelos primero.');
+  if(!confirm('¿Borrar el grupo '+g.nombre+'?')) return;
+  if(!await confirmarDueno('borrar el grupo '+g.nombre)) return;
+  D.grupos=D.grupos.filter(x=>x.id!==id); log('Borró el grupo '+g.nombre);
+  guardar(); cerrarHoja(); toast('Borrado'); ir('grupos');
+}
+
+/* =========================== FAMILIAS =========================== */
+PINTORES.familias=()=>{
+  $('v-familias').innerHTML=`
+  <div class="card">
+    <div class="hd">👨‍👩‍👧 Familias</div>
+    <div class="mini" style="margin-bottom:9px">Junta a los hermanos en una familia y ponle el descuento que tú quieras.</div>
+    ${D.familias.length?D.familias.map(f=>{
+      const hs=alumnosActivos().filter(a=>a.familiaId===f.id);
+      return `<button class="fila" style="width:100%;text-align:left" onclick="editarFamilia('${f.id}')">
+        <div class="izq"><div class="n1">${esc(f.nombre)}</div>
+        <div class="n2">${hs.length} alumno${hs.length===1?'':'s'}${hs.length?': '+hs.map(a=>esc(a.nombre)).join(', '):''} · ${f.descuento||0}% de descuento</div></div>
+        <span class="fl gris">✏️</span></button>`;}).join('')
+      :'<div class="vacio-msj">Todavía no hay familias.</div>'}
+  </div>
+  <button class="btn pri" onclick="editarFamilia()">➕ Agregar familia</button>`;
+};
+function editarFamilia(id){
+  const f=id?porId(D.familias,id):{id:'',nombre:'',descuento:0};
+  hoja(id?'Familia '+f.nombre:'Agregar familia',`
+   <div class="campo"><label>Apellido o nombre de la familia</label><input id="fa-nom" value="${esc(f.nombre)}"></div>
+   <div class="campo"><label>Descuento %</label><input type="number" id="fa-desc" min="0" max="100" value="${f.descuento||0}"></div>
+   <div class="mini" style="margin-bottom:10px">Se le aplica a cada hermano de esta familia.</div>
+   <button class="btn pri" onclick="guardarFamilia('${id||''}')">Guardar</button>
+   ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarFamilia('${id}')">🗑️ Borrar</button>`:''}`);
+}
+function guardarFamilia(id){
+  const n=($('fa-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  const o={nombre:n,descuento:Number($('fa-desc').value)||0};
+  if(id){ Object.assign(porId(D.familias,id),o); log('Modificó la familia '+n); }
+  else { D.familias.push({id:uid(),...o}); log('Agregó la familia '+n); }
+  guardar(); cerrarHoja(); toast('Guardada'); ir('familias');
+}
+function borrarFamilia(id){
+  const f=porId(D.familias,id);
+  const n=D.alumnos.filter(a=>a.familiaId===id).length;
+  if(n) return alert('No se puede borrar: '+n+' alumno(s) están en esta familia.');
+  if(!confirm('¿Borrar la familia '+f.nombre+'?')) return;
+  D.familias=D.familias.filter(x=>x.id!==id); log('Borró la familia '+f.nombre);
+  guardar(); cerrarHoja(); toast('Borrada'); ir('familias');
+}
+/* =========================== CÓMO VA EL DOJO =========================== */
+let REP_ANIO=0;
+PINTORES.reportes=()=>{
+  if(!REP_ANIO) REP_ANIO=new Date().getFullYear();
+  const a=REP_ANIO, mk=mesActual();
+  const act=alumnosActivos();
+  const desp=seDespegan();
+
+  /* asistencia promedio del mes */
+  const ses=D.asistencia.filter(s=>mesClave(s.fecha)===mk);
+  let sumaP=0, sumaE=0;
+  ses.forEach(s=>{ sumaP+=(s.presentes||[]).length; sumaE+=alumnosDeGrupo(s.grupoId).length; });
+  const prom = sumaE? Math.round(sumaP/sumaE*100) : 0;
+
+  /* entradas y salidas del mes */
+  const nuevos=D.alumnos.filter(x=>mesClave(x.desde||x.creado)===mk).length;
+
+  /* por cinturón */
+  const porCint=D.cinturones.slice().sort((x,y)=>x.orden-y.orden)
+    .map(c=>({c,n:act.filter(x=>x.cinturonId===c.id).length})).filter(x=>x.n>0);
+  const maxC=porCint.reduce((m,x)=>Math.max(m,x.n),1);
+
+  /* dinero del año, mes a mes */
+  const meses=[];
+  for(let m=1;m<=12;m++){
+    const k=a+'-'+String(m).padStart(2,'0');
+    meses.push({m,k,cob:cobradoDelMes(k),esp:esperadoDelMes(k)});
+  }
+  const totCob=n2(meses.reduce((s,x)=>s+x.cob,0));
+
+  /* quién paga tarde */
+  const tarde=act.map(x=>{
+    let n=0;
+    meses.forEach(mm=>{ if(mm.k<=mk && debeDelMes(x,mm.k)>0) n++; });
+    return {a:x,n};
+  }).filter(x=>x.n>0).sort((p,q)=>q.n-p.n).slice(0,8);
+
+  $('v-reportes').innerHTML=`
+  <div class="card">
+    <div class="hd">📊 ${esc(mesBonito(mk))}</div>
+    <div class="fila"><span>Alumnos activos</span><span class="mono">${act.length}</span></div>
+    <div class="fila"><span>Entraron este mes</span><span class="mono verde">${nuevos}</span></div>
+    <div class="fila"><span>Se han ido (en total)</span><span class="mono">${D.alumnos.filter(x=>x.activo===false).length}</span></div>
+    <div class="fila"><span>Clases dadas este mes</span><span class="mono">${ses.length}</span></div>
+    <div class="fila"><span>Asistencia promedio</span><span class="mono ${prom>=70?'verde':'ambar'}">${prom}%</span></div>
+    <div class="barra-b ${prom>=70?'v':'a'}"><i style="width:${prom}%"></i></div>
+  </div>
+
+  <div class="card">
+    <div class="hd">⚠️ Ojo con estos (${desp.length})</div>
+    <div class="mini" style="margin-bottom:8px">Un alumno no se va de un día para otro: primero deja de venir.</div>
+    ${desp.length?desp.map(x=>`<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${x.a.id}')">
+      <div class="avatar sm" style="${x.a.foto?`background-image:url(${x.a.foto})`:''}">${x.a.foto?'':'👤'}</div>
+      <div class="izq"><div class="n1">${esc(nombreAlumno(x.a))}</div>
+      <div class="n2">${x.nunca?'nunca ha venido':'no viene hace '+x.dias+' días'}${(x.a.tutor1t)?' · '+esc(x.a.tutor1t):''}</div></div>
+      ${x.a.tutor1t?`<a class="btn chico" href="tel:${esc(x.a.tutor1t)}" onclick="event.stopPropagation()">📞</a>`:'<span class="fl gris">›</span>'}
+      </button>`).join('')
+      :'<div class="nota ok">✅ Todos vienen seguido.</div>'}
+  </div>
+
+  <div class="card">
+    <div class="hd">🥋 Cómo están repartidos los cinturones</div>
+    ${porCint.length?porCint.map(x=>`<div style="padding:6px 0">
+      <div style="display:flex;justify-content:space-between;font-size:14px">
+        <span>${cintaHTML(x.c,true)} ${esc(x.c.nombre)}</span><span class="mono">${x.n}</span></div>
+      <div class="barra-b"><i style="width:${Math.max(4,x.n/maxC*100)}%"></i></div></div>`).join('')
+      :'<div class="vacio-msj">Todavía no hay alumnos.</div>'}
+  </div>
+
+  <div class="card" style="overflow-x:auto">
+    <div class="hd">💵 El año ${a}</div>
+    <table class="t"><thead><tr><th>Mes</th><th>Cobrado</th><th>Esperado</th><th>Falta</th></tr></thead><tbody>
+    ${meses.map(x=>`<tr><td class="gris">${MES3[x.m]}</td>
+      <td class="verde">${x.cob?money(x.cob):'–'}</td>
+      <td>${x.esp?money(x.esp):'–'}</td>
+      <td class="${x.esp-x.cob>0?'ambar':''}">${x.esp-x.cob>0?money(x.esp-x.cob):'–'}</td></tr>`).join('')}
+    <tr><td><b>TOTAL</b></td><td><b class="verde">${money(totCob)}</b></td><td></td><td></td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="hd">⏰ Los que más se atrasan</div>
+    ${tarde.length?tarde.map(x=>`<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${x.a.id}')">
+      <div class="izq"><div class="n1">${esc(nombreAlumno(x.a))}</div>
+      <div class="n2">${x.n} mes${x.n===1?'':'es'} sin pagar completo</div></div>
+      <span class="fl gris">›</span></button>`).join('')
+      :'<div class="nota ok">✅ Nadie se atrasa.</div>'}
+  </div>
+  <button class="btn" onclick="compartirResumen()">📤 Compartir el resumen</button>`;
+};
+function textoResumen(){
+  const mk=mesActual(), act=alumnosActivos();
+  let t=(D.escuela&&D.escuela.nombre||'DOJO')+'\n';
+  t+='Resumen de '+mesBonito(mk)+'\n'+'='.repeat(40)+'\n\n';
+  t+='Alumnos activos ........ '+act.length+'\n';
+  D.grupos.forEach(g=>t+='  '+g.nombre+' ('+horarioGrupo(g)+') ... '+alumnosDeGrupo(g.id).length+'\n');
+  t+='\nCobrado ................ '+money(cobradoDelMes(mk))+'\n';
+  t+='Esperado ............... '+money(esperadoDelMes(mk))+'\n';
+  t+='Falta .................. '+money(Math.max(0,esperadoDelMes(mk)-cobradoDelMes(mk)))+'\n';
+  const deben=deudoresDelMes(mk);
+  if(deben.length){ t+='\nDEBEN ('+deben.length+'):\n';
+    deben.forEach(a=>t+='  '+nombreAlumno(a)+' — '+money(debeDelMes(a,mk))+'\n'); }
+  const listos=act.map(a=>({a,e:elegibilidad(a)})).filter(x=>x.e.listo);
+  if(listos.length){ t+='\nLISTOS PARA EXAMEN ('+listos.length+'):\n';
+    listos.forEach(x=>t+='  '+nombreAlumno(x.a)+' — '+(x.e.c?x.e.c.nombre:'')+' → '+(x.e.sig?x.e.sig.nombre:'')+'\n'); }
+  const desp=seDespegan();
+  if(desp.length){ t+='\nNO ESTÁN VINIENDO ('+desp.length+'):\n';
+    desp.forEach(x=>t+='  '+nombreAlumno(x.a)+' — '+(x.nunca?'nunca':x.dias+' días')+'\n'); }
+  return t;
+}
+async function compartirResumen(){
+  const t=textoResumen();
+  try{ if(navigator.share){ await navigator.share({title:'Resumen del dojo',text:t}); return; } }catch(e){}
+  hoja('Resumen',
+    `<textarea readonly style="height:56vh;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px">${esc(t)}</textarea>
+     <button class="btn pri" style="margin-top:9px" onclick="copiarTexto(this)">Copiar todo</button>`);
+}
+function copiarTexto(btn){
+  const ta=btn.parentElement.querySelector('textarea');
+  ta.select(); try{document.execCommand('copy');toast('Copiado');}catch(e){toast('Selecciónalo y cópialo a mano');}
+}
+function bajar(txt,nombre,tipo){
+  const b=new Blob([txt],{type:tipo||'application/json'}), u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=nombre; document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(u);},900);
+}
+
+/* =========================== BACKUP Y SEGURIDAD =========================== */
+PINTORES.backup=()=>{
+  const kb=Math.round((localStorage.getItem(LLAVE)||'').length/1024);
+  const conFoto=D.alumnos.filter(a=>a.foto).length;
+  $('v-backup').innerHTML=`
+  <div class="card">
+    <div class="hd">💾 Backup</div>
+    <div class="fila"><span class="gris">Alumnos</span><span class="mono">${D.alumnos.length}</span></div>
+    <div class="fila"><span class="gris">Con foto</span><span class="mono">${conFoto}</span></div>
+    <div class="fila"><span class="gris">Listas pasadas</span><span class="mono">${D.asistencia.length}</span></div>
+    <div class="fila"><span class="gris">Pagos</span><span class="mono">${D.pagos.length}</span></div>
+    <div class="fila"><span class="gris">Exámenes</span><span class="mono">${D.examenes.length}</span></div>
+    <div class="fila"><span class="gris">Tamaño</span><span class="mono ${kb>3500?'ambar':''}">${kb} KB</span></div>
+    ${kb>3500?'<div class="nota al">El archivo se está poniendo grande, casi todo por las fotos. Si algún día no deja guardar, quítale la foto a los alumnos que ya no están.</div>':''}
+    <button class="btn pri" style="margin-top:10px" onclick="bajarBackup()">⬇️ Bajar backup</button>
+    <div class="mini" style="margin-top:6px">Bájalo seguido. Si pierdes el aparato, esto es lo único que te devuelve todo.</div>
+  </div>
+  <div class="card"><div class="hd">Restaurar</div>
+    <input type="file" accept=".json" id="bk-file">
+    <button class="btn" style="margin-top:9px" onclick="restaurarBackup()">⬆️ Restaurar desde un backup</button>
+    <div class="mini" style="margin-top:6px">Reemplaza TODO lo que hay ahora. Baja un backup antes, por si acaso.</div>
+  </div>
+  <div class="card"><div class="hd">👆 Huella digital</div>
+    <div id="seg-huella"><div class="mini">Revisando el aparato…</div></div>
+  </div>
+  <div class="card"><div class="hd">🔑 Cambiar la clave</div>
+    <div class="campo"><input type="password" id="sg-vieja" placeholder="Clave actual"></div>
+    <div class="campo"><input type="password" id="sg-nueva" placeholder="Clave nueva"></div>
+    <button class="btn" onclick="cambiarClave()">Cambiar clave</button>
+  </div>
+  <div class="nota al">⚠️ Aquí hay fotos, nombres y teléfonos de <b>menores de edad</b>.
+    Nada de esto sale de tu aparato. Guarda el backup en un sitio seguro y no lo compartas con nadie.</div>`;
+  pintarHuella();
+};
+async function pintarHuella(){
+  const c=$('seg-huella'); if(!c) return;
+  const disp=await huellaDisponible(); const h=D.config.huella;
+  if(!disp){ c.innerHTML=`<div class="nota al">Este aparato no ofrece lector de huella al navegador.
+    En el teléfono normalmente sí. Tu clave siempre funciona.</div>`; return; }
+  c.innerHTML = (h&&h.activa)
+   ? `<div class="nota ok">👆 Huella registrada en este aparato.</div>
+      <label class="mini" style="display:block;margin:9px 0">
+        <input type="checkbox" ${D.config.huellaBorrar!==false?'checked':''} style="width:auto;margin-right:7px"
+          onchange="D.config.huellaBorrar=this.checked;guardar();toast('Guardado')">
+        Pedirme la huella antes de borrar cosas</label>
+      <button class="btn peligro" onclick="quitarHuella()">Quitar la huella de este aparato</button>`
+   : `<div class="mini" style="margin-bottom:9px">Entra con tu huella en vez de escribir la clave. Se registra por aparato.</div>
+      <button class="btn pri" onclick="registrarHuella()">👆 Registrar mi huella</button>`;
+}
+function bajarBackup(){
+  const f=new Date(), s=f.getFullYear()+String(f.getMonth()+1).padStart(2,'0')+String(f.getDate()).padStart(2,'0');
+  bajar(JSON.stringify(D),`backup_okamura_dojo_${s}.json`,'application/json');
+  log('Bajó un backup'); guardar(); toast('Backup bajado');
+}
+async function restaurarBackup(){
+  if(!await confirmarDueno('restaurar un backup encima de todo')) return;
+  const f=$('bk-file').files[0]; if(!f) return toast('Escoge primero el archivo del backup.');
+  const fr=new FileReader();
+  fr.onload=e=>{
+    let d; try{ d=JSON.parse(e.target.result); }catch(err){ return alert('Ese archivo no se puede leer.'); }
+    if(!d||!d.v||!Array.isArray(d.alumnos)) return alert('Ese archivo no parece un backup de esta app.');
+    if(!confirm(`¿Restaurar?\n\nEl backup trae ${d.alumnos.length} alumnos.\nSe reemplaza TODO lo que hay ahora.`)) return;
+    const clave=D.clave; D=d; if(!D.clave) D.clave=clave;
+    log('Restauró un backup con '+d.alumnos.length+' alumnos');
+    guardar(); toast('Restaurado'); ir('inicio');
+  };
+  fr.readAsText(f);
+}
+async function cambiarClave(){
+  const v=$('sg-vieja').value, n=$('sg-nueva').value;
+  if(!v||!n) return toast('Llena las dos casillas.');
+  if(n.length<4) return toast('La clave nueva necesita al menos 4 caracteres.');
+  if(await hash(v,D.clave.sal)!==D.clave.h) return toast('La clave actual no es correcta.');
+  const sal=uid()+uid(); D.clave={sal,h:await hash(n,sal)};
+  log('Cambió la clave'); guardar(); toast('Clave cambiada');
+  $('sg-vieja').value=''; $('sg-nueva').value='';
+}
+
+/* =========================== BITÁCORA =========================== */
+PINTORES.bitacora=()=>{
+  const b=D.bitacora.slice().reverse().slice(0,300);
+  $('v-bitacora').innerHTML=`
+  <div class="card"><div class="hd">📓 Bitácora</div>
+    <div class="mini" style="margin-bottom:9px">Todo lo que se hizo en la app. No se borra ni se edita.</div>
+    ${b.length?b.map(x=>{const d=new Date(x.f);
+      return `<div class="fila"><div class="izq"><div class="n1">${esc(x.t)}</div>
+        <div class="n2">${d.toLocaleDateString('es')} ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join('')
+      :'<div class="vacio-msj">Vacía.</div>'}
+  </div>`;
+};
+
+/* =========================== MANUAL =========================== */
+const MANUAL=[
+ {t:'▶️ Para empezar', c:[
+   ['1 · Revisa tus grupos','Menú ☰ → Grupos y horarios. Vienen puestos el Grupo 1 (6:00–7:00 PM) y el Grupo 2 (7:00–8:00 PM). Cámbiales el nombre y marca los días que entrenan.'],
+   ['2 · Revisa los cinturones','Menú ☰ → Cinturones y técnicas. Vienen 8 cinturones de ejemplo. Cambia los nombres, los colores, cuántas clases y cuántos meses hace falta para cada uno, y agrégale sus técnicas.'],
+   ['3 · Agrega tus alumnos','Botón ALUMNOS → ➕ Agregar alumno. Con "Guardar y agregar otro" los metes todos seguidos sin salirte.'],
+   ['4 · Ponles foto','Desde la ficha del alumno, botón 📷 Foto. Vale la pena: pasar lista con caras es mucho más rápido que leer nombres.']
+ ]},
+ {t:'✓ Pasar lista', c:[
+   ['Cómo','Botón PASAR LISTA abajo. Escoge el grupo, toca la cara de cada alumno que vino, y GUARDAR. Nada más.'],
+   ['Otro día','Si se te olvidó pasar lista ayer, cambia la fecha arriba y la pasas igual.'],
+   ['Corregir','Si te equivocaste, vuelve al mismo día y grupo, arregla y guarda otra vez.'],
+   ['Para qué sirve','Cada clase que marcas cuenta para el examen del alumno. Por eso importa pasarla siempre.']
+ ]},
+ {t:'🎓 Quién puede examinarse', c:[
+   ['La app lo calcula sola','Menú ☰ → Listos para examen. Mira tres cosas de cada alumno: cuántas clases lleva con ese cinturón, cuántos meses, y cuántas técnicas ya domina.'],
+   ['Las reglas las pones tú','En Cinturones y técnicas le dices a cada cinturón qué hace falta. Por ejemplo: 24 clases, 3 meses y 8 técnicas.'],
+   ['Marcar técnicas','En la ficha del alumno, botón "Marcar técnicas". Tocas las que ya domina.'],
+   ['"Casi"','Los que están cerca salen aparte, con lo que les falta. Sirve para animarlos.']
+ ]},
+ {t:'📋 El día del examen', c:[
+   ['Crear el examen','Menú ☰ → Exámenes → Nuevo examen. Trae marcados los que están listos, pero puedes escoger a quien quieras.'],
+   ['Calificar en el tatami','Abre el examen en el teléfono o la tableta. Cada alumno tiene Kata, Kumite, Kihon y Espíritu, del 1 al 5. Tocas el número y ya.'],
+   ['Pasa o no pasa','Un toque. Puedes cambiarlo hasta que termines el examen.'],
+   ['Terminar','Botón "Terminar y promover". Los que pasaron reciben su cinturón nuevo solos, con la fecha y las notas guardadas en su camino.'],
+   ['Sin examen formal','Si quieres promover a alguien sin montar un examen, en su ficha hay "Anotar promoción a mano".']
+ ]},
+ {t:'💵 Las cuotas', c:[
+   ['La cuota general','En la pantalla de CUOTAS, abajo. Es la que se le aplica a todos.'],
+   ['Cuota distinta','Un alumno puede tener la suya en su ficha. Si la dejas en blanco, usa la general.'],
+   ['Hermanos','Menú ☰ → Familias. Creas la familia, le pones el descuento, y en la ficha de cada hermano la escoges. El descuento se aplica solo.'],
+   ['Anotar un pago','En CUOTAS, botón "Pagó" al lado del alumno. O desde su ficha.'],
+   ['Pagos partidos','Si te paga la mitad hoy y la otra mitad después, anota los dos. La app suma y sabe cuánto falta.'],
+   ['Un mes viejo','Puedes cambiar el mes arriba y anotar pagos atrasados.']
+ ]},
+ {t:'⚠️ Los que se están yendo', c:[
+   ['Por qué importa','Un alumno no se va de un día para otro. Primero deja de venir. Si lo ves a tiempo, lo llamas y lo recuperas.'],
+   ['Dónde','En el Inicio te sale el aviso, y en Menú ☰ → Cómo va el dojo está la lista completa con el teléfono del encargado.'],
+   ['Cuándo avisa','Cuando pasan 14 días sin venir.']
+ ]},
+ {t:'💾 El backup', c:[
+   ['Bájalo seguido','Menú ☰ → Backup y seguridad → Bajar backup.'],
+   ['Por qué','Todo se guarda SOLO en este aparato. No hay nube. Si lo pierdes o se borra el navegador, el backup es lo único que te devuelve todo.'],
+   ['Para pasar de la PC al teléfono','Bajas el backup en uno y lo restauras en el otro. La app no se sincroniza sola.'],
+   ['⚠️ Guárdalo bien','El backup lleva las fotos, los nombres y los teléfonos de menores de edad. Ponlo en un sitio seguro y no lo compartas.']
+ ]},
+ {t:'👆 Huella y clave', c:[
+   ['Prender la huella','Menú ☰ → Backup y seguridad. Se registra por aparato: la del teléfono no sirve en la PC.'],
+   ['Tu clave nunca deja de servir','Aunque tengas la huella, la casilla de la clave sigue ahí abajo.'],
+   ['Antes de borrar','Si dejas marcada la casilla, te pide la huella antes de borrar un alumno, una lista o un pago.']
+ ]},
+ {t:'❓ Si algo se ve raro', c:[
+   ['No puedo borrar un alumno','Si ya tiene clases o pagos anotados, la app no lo deja a propósito. Usa "Marcar que se fue" — así el historial se queda intacto.'],
+   ['No puedo borrar un cinturón o un grupo','Es porque hay alumnos usándolo. Muévelos primero.'],
+   ['"NO SE PUDO GUARDAR"','Casi siempre es por muchas fotos. Baja un backup enseguida y quítale la foto a los alumnos que ya no están.'],
+   ['Las clases no le cuentan al alumno','Fíjate que esté en el grupo correcto: la app cuenta las listas del grupo al que pertenece.']
+ ]}
+];
+let MAN_ABIERTO=-1;
+PINTORES.manual=()=>{
+  $('v-manual').innerHTML=`
+  <div class="card"><div class="hd">📖 Manual de uso</div>
+    <div class="mini">Toca cualquier tema para abrirlo. Está siempre aquí, no necesitas internet.</div></div>
+  ${MANUAL.map((s,i)=>`
+   <div class="card tight">
+     <button class="fila" style="width:100%;text-align:left;padding:4px 0"
+       onclick="MAN_ABIERTO=${MAN_ABIERTO===i?-1:i};PINTORES.manual()">
+       <div class="izq"><div class="n1" style="font-weight:600">${s.t}</div></div>
+       <span class="fl gris">${MAN_ABIERTO===i?'▾':'›'}</span></button>
+     ${MAN_ABIERTO===i?`<div style="margin-top:7px">${s.c.map(x=>`
+        <div style="padding:8px 0;border-top:1px solid var(--linea)">
+          <div style="font-weight:600;font-size:14px;margin-bottom:3px">${x[0]}</div>
+          <div class="mini" style="line-height:1.5;color:var(--texto2)">${x[1]}</div>
+        </div>`).join('')}</div>`:''}
+   </div>`).join('')}
+  <div class="nota" style="margin-top:10px">Si algo no te queda claro o la app hace algo raro, anótalo y me lo dices.</div>`;
+};
+
+</script>
+</body>
+</html>
