@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260803b-DOJO-V2.1">
+<meta name="app-version" content="20260803c-DOJO-V2.2">
 <meta name="theme-color" content="#2f3438">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -168,6 +168,36 @@ table.t tr:last-child td{border-bottom:none}
   pointer-events:none;max-width:88%;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .foto-prev{max-width:100%;border-radius:var(--r);border:1px solid var(--linea);margin-top:7px}
+#capa-aviso{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);
+  align-items:center;justify-content:center;padding:20px}
+#capa-aviso.on{display:flex}
+.avisocaja{background:var(--tarjeta);border:2px solid var(--ambar);border-radius:14px;padding:16px;
+  max-width:340px;width:100%;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.avisocaja.peligro{border-color:var(--rojo)}
+.avisocaja.ok{border-color:var(--verde)}
+.avisotit{font-size:16px;font-weight:700;margin-bottom:8px}
+.avisotx{font-size:13.5px;color:var(--texto2);margin-bottom:6px}
+.avisotx.rojo{color:var(--rojo)}
+.avisolista{margin:0 0 10px 18px;padding:0;font-size:13.5px;color:var(--texto)}
+.avisolista li{margin-bottom:3px}
+input.malo,select.malo,textarea.malo{border-color:var(--rojo)!important;background:#4a3230!important}
+#btn-menu{background:var(--rojo)!important;color:#2f3438!important;border-radius:9px!important;
+  width:44px;height:38px;font-size:22px;font-weight:700;border:0;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.dibcaja{background:var(--tarjeta2);border:1px solid var(--linea);border-radius:10px;
+  padding:8px;margin-top:10px}
+svg.dib{width:100%;height:auto;display:block}
+svg.dib .f1{fill:#4e2c29;stroke:var(--rojo);stroke-width:1}
+svg.dib .f2{fill:var(--tarjeta3,#4d545b);stroke:var(--linea);stroke-width:1}
+svg.dib .f3{fill:#4e2c29;stroke:var(--rojo);stroke-width:1}
+svg.dib .f4{fill:none;stroke:var(--linea);stroke-width:1;stroke-dasharray:3 2}
+svg.dib .f5{fill:#33503c;stroke:var(--verde);stroke-width:1}
+svg.dib .ln{stroke:var(--linea);stroke-width:1;fill:none}
+svg.dib .fl{stroke:var(--texto3);stroke-width:1.4;fill:none;marker-end:url(#p)}
+svg.dib text{font:8.5px system-ui,sans-serif;text-anchor:middle}
+svg.dib .tc{fill:var(--rojo);font-weight:700}
+svg.dib .tc2{fill:var(--texto);font-weight:600}
+svg.dib .tc3{fill:var(--texto3)}
+svg.dib .tc4{fill:var(--texto2);text-anchor:start}
 .firmacanvas{width:100%;height:160px;background:var(--campos);border:1px dashed var(--linea);
   border-radius:9px;touch-action:none;display:block}
 .condrop{position:relative}
@@ -260,6 +290,7 @@ textarea{width:100%;background:var(--campos);border:1px solid var(--linea);borde
   <div class="vista" id="v-familias"></div>
   <div class="vista" id="v-backup"></div>
   <div class="vista" id="v-documentos"></div>
+  <div class="vista" id="v-imprimir"></div>
   <div class="vista" id="v-manual"></div>
   <div class="vista" id="v-bitacora"></div>
 </div>
@@ -272,6 +303,7 @@ textarea{width:100%;background:var(--campos);border:1px solid var(--linea);borde
 </div>
 
 <div id="capa-foto" onclick="cerrarFoto()"></div>
+<div id="capa-aviso"></div>
 <div class="capa" id="capa"><div class="hoja" id="hoja"></div></div>
 <div id="toast"></div>
 
@@ -282,7 +314,7 @@ textarea{width:100%;background:var(--campos);border:1px solid var(--linea);borde
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260803b-DOJO-V2.1';
+const VERSION_APP='20260803c-DOJO-V2.2';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -393,7 +425,7 @@ function datosNuevos(){
     ],
     cinturones:cints, alumnos:[], familias:[], asistencia:[], pagos:[], examenes:[],
     bitacora:[],
-    config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$'}
+    config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$', sonido:true, parentescos:[]}
   };
 }
 function guardar(){
@@ -412,6 +444,8 @@ function cargar(){
     d.config=d.config||{};
     if(d.config.huella===undefined) d.config.huella=null;
     if(d.config.huellaBorrar===undefined) d.config.huellaBorrar=true;
+    if(d.config.sonido===undefined) d.config.sonido=true;
+    if(!d.config.parentescos) d.config.parentescos=[];
     ['grupos','cinturones','alumnos','familias','asistencia','pagos','examenes','bitacora']
       .forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
     d.cinturones.forEach(c=>{ if(!Array.isArray(c.tecnicas)) c.tecnicas=[]; });
@@ -452,6 +486,10 @@ async function entrar(){
 }
 function abrirApp(){
   if(migrarCinturones()) guardar();
+  iniciarNavegacion();
+  setTimeout(avisarSiSeActualizo,700);
+  setTimeout(()=>buscarVersionNueva(true),4000);
+  setInterval(()=>buscarVersionNueva(true), 30*60*1000);
   $('pantalla-login').style.display='none';
   $('app-contenido').style.display='block';
   ir('inicio');
@@ -511,16 +549,18 @@ async function entrarConHuella(){
 let vistaActual='inicio';
 const PINTORES={};
 function ir(v){
-  vistaActual=v;
-  document.querySelectorAll('.vista').forEach(e=>e.classList.remove('on'));
-  const el=$('v-'+v); if(el) el.classList.add('on');
-  document.querySelectorAll('#abajo button').forEach(b=>b.classList.toggle('on',b.dataset.ir===v));
-  window.scrollTo(0,0); pintar();
+  if(v!==vistaActual){
+    if(PILA[PILA.length-1]!==v) PILA.push(v);
+    if(PILA.length>25) PILA=PILA.slice(-25);
+  }
+  irSinPila(v);
+  if(v==='inicio') PILA=['inicio'];
 }
 function pintar(){ if(PINTORES[vistaActual]) PINTORES[vistaActual](); }
 
 let cerrarCb=null;
 function hoja(titulo,html,cb){
+  if(NAV_LISTA) marcarPaso();
   $('hoja').innerHTML=`<div class="hoja-tit"><h3>${esc(titulo)}</h3>
     <button class="icobtn" onclick="cerrarHoja()">✕</button></div>${html}`;
   $('capa').classList.add('on'); cerrarCb=cb||null; $('hoja').scrollTop=0;
@@ -608,6 +648,7 @@ function menu(){
     ['🎓','Listos para examen','elegibles'],['📋','Exámenes','examenes'],
     ['🥋','Cinturones y técnicas','cinturones'],['🕕','Grupos y horarios','grupos'],
     ['👨‍👩‍👧','Familias','familias'],['📄','Documentos y firmas','documentos'],
+    ['🖨️','Imprimir todo','imprimir'],
     ['📊','Cómo va el dojo','reportes'],
     ['💾','Backup y seguridad','backup'],['📖','Manual de uso','manual'],['📓','Bitácora','bitacora']
   ];
@@ -1086,6 +1127,7 @@ function verFotoTmp(){
     <button class="cerrar-visor" onclick="cerrarFoto()">✕</button>
     <img src="${FOTO_TMP}" alt=""><div class="pie">Foto que acabas de escoger</div></div>`;
   cp.classList.add('on');
+  if(NAV_LISTA) marcarPaso();
 }
 function cerrarFoto(){ $('capa-foto').classList.remove('on'); $('capa-foto').innerHTML=''; }
 function cambiarFotoDesdeVisor(id,conCamara){
@@ -1098,9 +1140,186 @@ function cambiarFotoDesdeVisor(id,conCamara){
   inp.click();
 }
 function quitarFoto(id){
-  if(!confirm('¿Quitarle la foto?')) return;
-  const a=porId(D.alumnos,id); delete a.foto;
-  log('Le quitó la foto a '+nombreAlumno(a)); guardar(); cerrarFoto(); pintar(); toast('Foto quitada');
+  const a=porId(D.alumnos,id);
+  confirmarBorrar('¿Quitarle la foto a '+nombreCorto(a)+'?',[],
+    ()=>{ delete a.foto;
+      log('Le quitó la foto a '+nombreAlumno(a)); guardar(); cerrarFoto(); pintar(); toast('Foto quitada'); });
+}
+
+/* =========================== SONIDOS =========================== */
+let AUDIO_CTX=null;
+function sonidoEncendido(){ return !(D&&D.config&&D.config.sonido===false); }
+function tono(frecs,dur,vol){
+  if(!sonidoEncendido()) return;
+  try{
+    AUDIO_CTX = AUDIO_CTX || new (window.AudioContext||window.webkitAudioContext)();
+    if(AUDIO_CTX.state==='suspended') AUDIO_CTX.resume();
+    let t=AUDIO_CTX.currentTime;
+    frecs.forEach((f,i)=>{
+      const o=AUDIO_CTX.createOscillator(), g=AUDIO_CTX.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||0.22,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(AUDIO_CTX.destination);
+      o.start(t); o.stop(t+dur); t+=dur*0.82;
+    });
+  }catch(e){}
+}
+const sonOK      = ()=>tono([784,1047],0.16,0.20);          // guardado
+const sonExito   = ()=>tono([659,880,1175],0.19,0.24);      // actualizado
+const sonAlerta  = ()=>tono([1047,784,1047],0.22,0.28);     // campanita: hay algo nuevo
+const sonError   = ()=>tono([320,240],0.20,0.26);           // falta un dato
+const sonPeligro = ()=>tono([440,330,440],0.17,0.26);       // vas a borrar
+
+/* =========================== BOTÓN DE ATRÁS =========================== */
+let PILA=['inicio'], SALIENDO=false, NAV_LISTA=false;
+function marcarPaso(){ try{ history.pushState({dojo:1},''); }catch(e){} }
+function iniciarNavegacion(){
+  if(NAV_LISTA) return; NAV_LISTA=true;
+  marcarPaso();
+  window.addEventListener('popstate',()=>{
+    if(SALIENDO) return;                       // dejarlo salir de verdad
+    marcarPaso();                              // siempre volvemos a tener un paso
+    /* 1. lo que esté encima se cierra primero */
+    if($('capa-foto') && $('capa-foto').classList.contains('on')){ cerrarFoto(); return; }
+    if(document.querySelector('.drop.on')){ cerrarDrops(); return; }
+    if($('capa') && $('capa').classList.contains('on')){ cerrarHoja(); return; }
+    /* 2. si hay pantalla anterior, volvemos a ella */
+    if(PILA.length>1){ PILA.pop(); const v=PILA[PILA.length-1]; irSinPila(v); return; }
+    /* 3. estamos en Inicio: preguntamos */
+    preguntarSalir();
+  });
+}
+function irSinPila(v){
+  vistaActual=v;
+  document.querySelectorAll('.vista').forEach(e=>e.classList.remove('on'));
+  const el=$('v-'+v); if(el) el.classList.add('on');
+  document.querySelectorAll('#abajo button').forEach(b=>b.classList.toggle('on',b.dataset.ir===v));
+  pintar(); window.scrollTo(0,0);
+}
+function preguntarSalir(){
+  sonAlerta();
+  hoja('¿Salir de la app?',`
+   <div class="nota">Tus datos quedan guardados en este aparato. No se pierde nada.</div>
+   <button class="btn peligro" style="margin-top:10px" onclick="salirDeVerdad()">Sí, salir</button>
+   <button class="btn pri" style="margin-top:8px" onclick="cerrarHoja()">Quedarme aquí</button>`);
+}
+function salirDeVerdad(){
+  cerrarHoja(); SALIENDO=true;
+  try{ history.go(-2); }catch(e){}
+  setTimeout(()=>{ try{ window.close(); }catch(e){} SALIENDO=false; }, 400);
+}
+
+/* =========================== FALTAN DATOS =========================== */
+function marcarMal(id,si){
+  const e=$(id); if(!e) return;
+  e.classList.toggle('malo',!!si);
+}
+function limpiarMarcas(){ document.querySelectorAll('.malo').forEach(e=>e.classList.remove('malo')); }
+/* recibe [[id,'Nombre del campo'], ...] y devuelve los que están vacíos */
+function faltantes(lista){
+  const out=[];
+  lista.forEach(([id,etq])=>{
+    const e=$(id);
+    if(!e) return;
+    const v=(e.value||'').trim();
+    marcarMal(id,!v);
+    if(!v) out.push({id,etq});
+  });
+  return out;
+}
+function avisarFaltan(faltan){
+  if(!faltan.length) return false;
+  sonError();
+  const cap=$('capa-aviso');
+  cap.innerHTML=`<div class="avisocaja" onclick="event.stopPropagation()">
+    <div class="avisotit">⚠️ Faltan datos</div>
+    <div class="avisotx">No se puede guardar hasta que llenes:</div>
+    <ul class="avisolista">${faltan.map(f=>`<li>${esc(f.etq)}</li>`).join('')}</ul>
+    <button class="btn pri" onclick="cerrarAviso('${faltan[0].id}')">Entendido</button></div>`;
+  cap.classList.add('on');
+  return true;
+}
+function cerrarAviso(irA){
+  $('capa-aviso').classList.remove('on'); $('capa-aviso').innerHTML='';
+  if(irA && $(irA)){ $(irA).scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>{ try{$(irA).focus();}catch(e){} },250); }
+}
+
+/* =========================== BORRAR CON AVISO =========================== */
+/* titulo, lista de cosas que se van, y qué hacer si dice que sí */
+let ACCION_BORRAR=null;
+function confirmarBorrar(titulo,seVan,alBorrar){
+  sonPeligro();
+  ACCION_BORRAR = alBorrar;
+  const cap=$('capa-aviso');
+  cap.innerHTML=`<div class="avisocaja peligro" onclick="event.stopPropagation()">
+    <div class="avisotit">🗑️ ${esc(titulo)}</div>
+    ${seVan&&seVan.length?`<div class="avisotx">Se va también:</div>
+      <ul class="avisolista">${seVan.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+    <div class="avisotx rojo"><b>Esto no se puede deshacer.</b></div>
+    <button class="btn peligro" onclick="hacerBorrado()">Sí, borrar</button>
+    <button class="btn" style="margin-top:8px" onclick="ACCION_BORRAR=null;cerrarAviso()">Cancelar</button></div>`;
+  cap.classList.add('on');
+}
+function hacerBorrado(){
+  const f=ACCION_BORRAR; ACCION_BORRAR=null; cerrarAviso();
+  if(typeof f==='function') f();
+}
+function cosasQueSeVan(a){
+  const out=[];
+  const cl=totalClases(a.id); if(cl) out.push(cl+' clase'+(cl===1?'':'s')+' de asistencia');
+  const pg=D.pagos.filter(p=>p.alumnoId===a.id); if(pg.length) out.push(pg.length+' pago'+(pg.length===1?'':'s')+' por '+money(pg.reduce((s,p)=>s+n2(p.monto),0)));
+  if((a.historial||[]).length) out.push((a.historial||[]).length+' promoción(es) de cinturón');
+  if(a.firma&&a.firma.trazo) out.push('su firma del permiso');
+  if(a.foto) out.push('su foto');
+  return out;
+}
+
+/* =========================== AVISO DE ACTUALIZACIÓN =========================== */
+function versionGuardada(){ try{ return localStorage.getItem('dojo_version_vista')||''; }catch(e){ return ''; } }
+function guardarVersionVista(){ try{ localStorage.setItem('dojo_version_vista',VERSION_APP); }catch(e){} }
+/* al abrir: ¿cambió la versión desde la última vez? */
+function avisarSiSeActualizo(){
+  const antes=versionGuardada();
+  guardarVersionVista();
+  if(!antes || antes===VERSION_APP) return;
+  sonExito();
+  const cap=$('capa-aviso');
+  cap.innerHTML=`<div class="avisocaja ok" onclick="event.stopPropagation()">
+    <div class="avisotit">✅ App actualizada</div>
+    <div class="avisotx">Ya estás en la versión <b>${esc(VERSION_APP)}</b>.</div>
+    <div class="avisotx mini">Antes tenías la ${esc(antes)}.</div>
+    <button class="btn pri" onclick="cerrarAviso()">Bien</button></div>`;
+  cap.classList.add('on');
+}
+/* cada tanto: ¿hay una versión nueva publicada? */
+let AVISADA='';
+async function buscarVersionNueva(callado){
+  if(location.protocol==='file:'){ if(!callado) toast('Esto solo funciona con la app publicada.'); return null; }
+  try{
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return null;
+    const t=await r.text();
+    const m=t.match(/name="app-version"\s+content="([^"]+)"/);
+    const v=m?m[1]:'';
+    if(!v || v===VERSION_APP){ if(!callado) toast('Ya tienes la última versión.'); return v; }
+    if(AVISADA===v) return v;
+    AVISADA=v; sonAlerta();
+    const cap=$('capa-aviso');
+    cap.innerHTML=`<div class="avisocaja" onclick="event.stopPropagation()">
+      <div class="avisotit">⬇️ Hay una versión nueva</div>
+      <div class="avisotx">Tú tienes la <b>${esc(VERSION_APP)}</b> · hay la <b>${esc(v)}</b>.</div>
+      <div class="avisotx mini">No se pierde nada: tus alumnos viven en este aparato.</div>
+      <button class="btn pri" onclick="actualizarAhora()">Actualizar ahora</button>
+      <button class="btn" style="margin-top:8px" onclick="cerrarAviso()">Luego</button></div>`;
+    cap.classList.add('on');
+    return v;
+  }catch(e){ if(!callado) toast('No se pudo revisar. ¿Estás sin internet?'); return null; }
+}
+async function actualizarAhora(){
+  cerrarAviso();
+  try{ if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
+  location.replace(location.pathname+'?v='+Date.now());
 }
 
 /* ---------- edad ---------- */
@@ -1398,8 +1617,16 @@ function pedirFoto(conCamara){
   inp.click();
 }
 function guardarAlumno(id,otroMas){
+  limpiarMarcas();
+  const menorAhora = esMenor({nacim:$('al-nacim').value||''});
+  const pedir=[['al-nom','Primer nombre'],['al-ape','Apellido paterno'],
+    ['al-nacim','Fecha de nacimiento'],['al-calle','Dirección'],['al-ciudad','Ciudad'],
+    ['al-zip','Código postal'],['em-nom','Contacto de emergencia: nombre'],
+    ['em-tel','Contacto de emergencia: teléfono']];
+  if(menorAhora){ pedir.push(['ma-nom','Madre: nombre'],['ma-tel','Madre: teléfono']); }
+  else { pedir.push(['al-tel','Teléfono del alumno']); }
+  if(avisarFaltan(faltantes(pedir))) return;
   const n=($('al-nom').value||'').trim();
-  if(!n) return toast('Escribe al menos el primer nombre.');
   const estadoAl=$('al-estadoal').value;
   const dias=[...document.querySelectorAll('.diassem input:checked')].map(x=>Number(x.value));
   const o={nombre:n, ini:($('al-ini').value||'').trim(),
@@ -1431,7 +1658,7 @@ function guardarAlumno(id,otroMas){
   else { D.alumnos.push({id:uid(),historial:[],tecnicas:[],rayas:0,creado:hoyISO(),...o});
     log('Agregó al alumno '+n); }
   if(!guardar()) return;
-  toast('Guardado'); FOTO_TMP=''; ALUMNO_EDIT=null;
+  sonOK(); toast('Guardado'); FOTO_TMP=''; ALUMNO_EDIT=null;
   if(otroMas){ cerrarHoja(); editarAlumno(); }
   else { cerrarHoja(); if(id){ ALUMNO_ACTUAL=id; ir('alumno'); } else ir('alumnos'); }
 }
@@ -1609,6 +1836,15 @@ function estiloImpresion(){
   .pie{margin-top:14px;font-size:8.5pt;color:#666;text-align:center;border-top:1px solid #ccc;padding-top:6px}
   .marca{display:inline-block;width:12px;height:12px;border:1.5px solid #333;margin-right:5px;vertical-align:-2px}
   .marca.si{background:#333}
+  .dibimp{border:1px solid #ccc;border-radius:8px;padding:8px;margin:8px 0;background:#fafafa;page-break-inside:avoid}
+  .dibimp svg{width:100%;height:auto}
+  .dibimp .f1{fill:#f6e2e0;stroke:#8a1c14}.dibimp .f2{fill:#f2f2f2;stroke:#999}
+  .dibimp .f3{fill:#f6e2e0;stroke:#8a1c14}.dibimp .f4{fill:none;stroke:#aaa;stroke-dasharray:3 2}
+  .dibimp .f5{fill:#e3f2e6;stroke:#3d7a4b}.dibimp .ln{stroke:#999;fill:none}
+  .dibimp .fl{stroke:#555;stroke-width:1.4;fill:none}
+  .dibimp text{font:8.5px sans-serif;text-anchor:middle;fill:#333}
+  .dibimp .tc{fill:#8a1c14;font-weight:700}.dibimp .tc2{fill:#111;font-weight:600}
+  .dibimp .tc3{fill:#555}.dibimp .tc4{fill:#333;text-anchor:start}
   .nueva{page-break-before:always}
   @media screen{body{background:#fff;padding:16px}}
   </style>`;
@@ -1789,10 +2025,10 @@ function guardarFirma(alumnoId){
 }
 function quitarFirma(alumnoId){
   const a=porId(D.alumnos,alumnoId);
-  if(!confirm('¿Borrar la firma de '+nombreAlumno(a)+'?')) return;
-  delete a.firma; a.waiver={firmado:false,fecha:''};
-  log('Borró la firma de '+nombreAlumno(a));
-  guardar(); toast('Firma borrada'); pintar();
+  confirmarBorrar('¿Borrar la firma de '+nombreCorto(a)+'?',
+    ['El permiso vuelve a quedar SIN firmar','Habrá que volver a leérselo y firmarlo'],
+    ()=>{ delete a.firma; a.waiver={firmado:false,fecha:''};
+      log('Borró la firma de '+nombreAlumno(a)); guardar(); toast('Firma borrada'); pintar(); });
 }
 
 /* ---------- pantalla de Documentos ---------- */
@@ -1831,20 +2067,576 @@ function menuDocsAlumno(id){
      <button class="btn chico peligro" style="margin-top:8px" onclick="cerrarHoja();quitarFirma('${id}')">🗑️ Borrar la firma</button></div>`:''}`);
 }
 
+/* =========================== MOTOR DE INFORMES ===========================
+   Un informe se describe UNA vez y sale en tres formatos:
+   imprimir/PDF, Word (.docx) y Excel (.xlsx).
+   Secciones: {t:'campos',tit,pares:[[k,v]]} · {t:'tabla',tit,cab:[],filas:[[]]}
+              {t:'texto',tit,parrafos:[]} · {t:'firma',etiquetas:[]} · {t:'salto'}
+========================================================================= */
+
+/* ---------- ZIP sin librerías (guardado sin comprimir) ---------- */
+const CRC_TABLA=(()=>{const t=new Uint32Array(256);
+  for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c>>>0;}
+  return t;})();
+function crc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC_TABLA[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipGuardar(archivos){
+  const cod=new TextEncoder(); const partes=[]; const central=[]; let off=0;
+  const u16=v=>[v&255,(v>>8)&255];
+  const u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];
+  archivos.forEach(f=>{
+    const nom=cod.encode(f.nombre);
+    const dat=typeof f.datos==='string'? cod.encode(f.datos) : f.datos;
+    const c=crc32(dat);
+    const loc=[...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(c),...u32(dat.length),...u32(dat.length),...u16(nom.length),...u16(0)];
+    partes.push(new Uint8Array(loc), nom, dat);
+    central.push({nom,c,len:dat.length,off});
+    off += loc.length + nom.length + dat.length;
+  });
+  const cenIni=off; const cen=[];
+  central.forEach(x=>{
+    const h=[...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(x.c),...u32(x.len),...u32(x.len),...u16(x.nom.length),
+      ...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(x.off)];
+    cen.push(new Uint8Array(h), x.nom); off += h.length + x.nom.length;
+  });
+  const fin=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),
+    ...u16(central.length),...u16(central.length),...u32(off-cenIni),...u32(cenIni),...u16(0)]);
+  return new Blob([...partes,...cen,fin],{type:'application/octet-stream'});
+}
+function bajarBlob(blob,nombre){
+  const u=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=u; a.download=nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+const xml=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+function limpiaNombre(s){ return String(s||'documento').replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'_').slice(0,70); }
+
+/* ---------- WORD (.docx) ---------- */
+function parrafoW(txt,op){
+  op=op||{};
+  const r=`<w:rPr>${op.negrita?'<w:b/>':''}${op.tam?`<w:sz w:val="${op.tam*2}"/>`:''}${op.color?`<w:color w:val="${op.color}"/>`:''}</w:rPr>`;
+  const p=`<w:pPr>${op.centro?'<w:jc w:val="center"/>':''}${op.sombra?'<w:shd w:val="clear" w:fill="F0ECE6"/>':''}${op.espacio?`<w:spacing w:before="${op.espacio}"/>`:''}</w:pPr>`;
+  return `<w:p>${p}<w:r>${r}<w:t xml:space="preserve">${xml(txt)}</w:t></w:r></w:p>`;
+}
+function tablaW(cab,filas){
+  const anchoTot=9360, cols=Math.max(1,(cab&&cab.length)||(filas[0]||[]).length);
+  const w=Math.floor(anchoTot/cols);
+  const celda=(t,neg,fondo)=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fondo?`<w:shd w:val="clear" w:fill="${fondo}"/>`:''}</w:tcPr>`+
+    `<w:p><w:r><w:rPr>${neg?'<w:b/>':''}<w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">${xml(t)}</w:t></w:r></w:p></w:tc>`;
+  let h=`<w:tbl><w:tblPr><w:tblW w:w="${anchoTot}" w:type="dxa"/><w:tblBorders>`+
+    ['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="single" w:sz="4" w:color="AAAAAA"/>`).join('')+
+    `</w:tblBorders></w:tblPr>`;
+  if(cab&&cab.length) h+=`<w:tr>${cab.map(c=>celda(c,true,'F0ECE6')).join('')}</w:tr>`;
+  filas.forEach(f=>{ h+=`<w:tr>${f.map(c=>celda(c,false,'')).join('')}</w:tr>`; });
+  return h+`</w:tbl>`;
+}
+function informeAWord(inf){
+  let c='';
+  c+=parrafoW(nombreEscuela(),{negrita:true,tam:14,centro:true,color:'8A1C14'});
+  c+=parrafoW(inf.titulo,{negrita:true,tam:12,centro:true});
+  if(inf.subtitulo) c+=parrafoW(inf.subtitulo,{centro:true,tam:9,color:'666666'});
+  c+=parrafoW('',{});
+  (inf.secciones||[]).forEach(s=>{
+    if(s.t==='salto'){ c+=`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`; return; }
+    if(s.tit) c+=parrafoW(s.tit,{negrita:true,tam:11,sombra:true,espacio:160});
+    if(s.t==='campos') c+=tablaW(null,(s.pares||[]).map(([k,v])=>[k,v==null?'':String(v)]));
+    if(s.t==='tabla')  c+=tablaW(s.cab,(s.filas||[]).map(f=>f.map(x=>x==null?'':String(x))));
+    if(s.t==='texto')  (s.parrafos||[]).forEach(p=>{ c+=parrafoW(p,{tam:10}); });
+    if(s.t==='firma'){
+      c+=parrafoW('',{}); c+=parrafoW('',{});
+      c+=tablaW(null,[(s.etiquetas||['Firma','Nombre','Fecha']).map(e=>'________________________\n'+e)]);
+    }
+  });
+  c+=parrafoW(nombreEscuela()+' · '+fechaLarga(hoyISO()),{tam:8,centro:true,color:'888888',espacio:240});
+  const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${c}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>
+<w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000"/></w:sectPr></w:body></w:document>`;
+  const tipos=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+  return zipGuardar([
+    {nombre:'[Content_Types].xml',datos:tipos},
+    {nombre:'_rels/.rels',datos:rels},
+    {nombre:'word/document.xml',datos:doc}]);
+}
+
+/* ---------- EXCEL (.xlsx) ---------- */
+function informeAExcel(inf){
+  const filas=[];
+  filas.push([{v:nombreEscuela(),e:'tit'}]);
+  filas.push([{v:inf.titulo,e:'tit'}]);
+  if(inf.subtitulo) filas.push([{v:inf.subtitulo}]);
+  filas.push([]);
+  (inf.secciones||[]).forEach(s=>{
+    if(s.t==='salto'||s.t==='firma') return;
+    if(s.tit){ filas.push([{v:s.tit,e:'sec'}]); }
+    if(s.t==='campos') (s.pares||[]).forEach(([k,v])=>filas.push([{v:k,e:'cab'},{v:v==null?'':v}]));
+    if(s.t==='tabla'){
+      if(s.cab&&s.cab.length) filas.push(s.cab.map(c=>({v:c,e:'cab'})));
+      (s.filas||[]).forEach(f=>filas.push(f.map(c=>({v:c==null?'':c}))));
+    }
+    if(s.t==='texto') (s.parrafos||[]).forEach(p=>filas.push([{v:p}]));
+    filas.push([]);
+  });
+  const col=n=>{let s='';n++;while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26);}return s;};
+  const est={tit:1,sec:2,cab:3};
+  let hojas='';
+  filas.forEach((f,i)=>{
+    hojas+=`<row r="${i+1}">`;
+    f.forEach((c,j)=>{
+      const ref=col(j)+(i+1);
+      const s=est[c.e]?` s="${est[c.e]}"`:'';
+      const num = typeof c.v==='number' || (typeof c.v==='string' && /^-?\d+(\.\d+)?$/.test(c.v) && c.v!=='');
+      hojas += num ? `<c r="${ref}"${s}><v>${c.v}</v></c>`
+                   : `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xml(c.v)}</t></is></c>`;
+    });
+    hojas+='</row>';
+  });
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<cols><col min="1" max="1" width="34" customWidth="1"/><col min="2" max="12" width="22" customWidth="1"/></cols>
+<sheetData>${hojas}</sheetData></worksheet>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="14"/><color rgb="FF8A1C14"/><name val="Calibri"/></font>
+<font><b/><sz val="12"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF0ECE6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+
+<cellXfs count="4"><xf xfId="0" fontId="0" fillId="0" borderId="0"/>
+<xf xfId="0" fontId="1" fillId="0" borderId="0" applyFont="1"/>
+<xf xfId="0" fontId="2" fillId="2" borderId="0" applyFont="1" applyFill="1"/>
+<xf xfId="0" fontId="3" fillId="2" borderId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Hoja1" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbrels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+  const tipos=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+  return zipGuardar([
+    {nombre:'[Content_Types].xml',datos:tipos},
+    {nombre:'_rels/.rels',datos:rels},
+    {nombre:'xl/workbook.xml',datos:wb},
+    {nombre:'xl/_rels/workbook.xml.rels',datos:wbrels},
+    {nombre:'xl/styles.xml',datos:styles},
+    {nombre:'xl/worksheets/sheet1.xml',datos:sheet}]);
+}
+
+/* ---------- IMPRIMIR / PDF ---------- */
+function informeAHTML(inf){
+  let h=encabezadoDoc(inf.titulo, inf.subtitulo||'');
+  if(inf.foto) h=h.replace('</div>\n    <h2','</div>\n    <h2');
+  (inf.secciones||[]).forEach(s=>{
+    if(s.t==='salto'){ h+='<div class="nueva"></div>'; return; }
+    if(s.tit) h+=`<h2>${esc(s.tit)}</h2>`;
+    if(s.t==='campos') h+=`<table>${(s.pares||[]).map(([k,v])=>
+      `<tr><th>${esc(k)}</th><td>${v==null||v===''?'&nbsp;':esc(String(v))}</td></tr>`).join('')}</table>`;
+    if(s.t==='tabla') h+=`<table>${s.cab&&s.cab.length?`<tr>${s.cab.map(c=>`<th style="width:auto">${esc(c)}</th>`).join('')}</tr>`:''}
+      ${(s.filas||[]).map(f=>`<tr>${f.map(c=>`<td>${c==null||c===''?'&nbsp;':esc(String(c))}</td>`).join('')}</tr>`).join('')}</table>`;
+    if(s.t==='texto') (s.parrafos||[]).forEach(p=>{ h+=`<div class="tx">${esc(p)}</div>`; });
+    if(s.t==='foto' && s.datos) h+=`<div style="text-align:center;margin:6px 0"><img src="${s.datos}" style="width:120px;height:120px;object-fit:cover;border:1px solid #999;border-radius:6px"></div>`;
+    if(s.t==='firmaimg' && s.datos) h+=`<div class="firma"><img class="firmaimg" src="${s.datos}">
+      <div style="text-align:center;font-size:9.5pt">${esc(s.pie||'')}</div></div>`;
+    if(s.t==='firma') h+=`<div class="firma"><div class="lineas">${(s.etiquetas||['Firma','Nombre','Fecha'])
+      .map(e=>`<div class="linea">${esc(e)}</div>`).join('')}</div></div>`;
+  });
+  return h;
+}
+/* los tres botones */
+function INF_ACTUAL(){ return window.__inf; }
+function abrirInforme(inf){
+  window.__inf=inf;
+  hoja(inf.titulo,`
+   <div class="mini" style="margin-bottom:10px">${esc(inf.subtitulo||'')}</div>
+   <button class="btn pri" onclick="imprimirInforme()">🖨️ Imprimir / Guardar como PDF</button>
+   <div class="dosc" style="margin-top:8px">
+     <button class="btn" onclick="bajarWord()">📝 Bajar Word</button>
+     <button class="btn" onclick="bajarExcel()">📊 Bajar Excel</button>
+   </div>
+   <div class="mini" style="margin-top:10px">Para el PDF: dale a Imprimir y en "Destino" escoge
+     <b>Guardar como PDF</b> en vez de la impresora.</div>`);
+}
+function imprimirInforme(){ const i=INF_ACTUAL(); if(i) abrirImpresion(informeAHTML(i), i.titulo); }
+function bajarWord(){ const i=INF_ACTUAL(); if(!i) return;
+  bajarBlob(informeAWord(i), limpiaNombre(i.titulo)+'.docx'); sonOK(); toast('Word bajado'); }
+function bajarExcel(){ const i=INF_ACTUAL(); if(!i) return;
+  bajarBlob(informeAExcel(i), limpiaNombre(i.titulo)+'.xlsx'); sonOK(); toast('Excel bajado'); }
+
+/* =========================== LOS INFORMES DEL DOJO =========================== */
+const VACIO='';
+function siNo(v){ return v?'Sí':'No'; }
+function dirTexto(o){ return direccionDe(o).replace(' · ', ', '); }
+
+/* ---------- 1. EXPEDIENTE COMPLETO DEL ALUMNO ---------- */
+function infExpediente(a){
+  const c=a?cintDe(a):null, e=a?elegibilidad(a):null;
+  const menor=a?esMenor(a):true;
+  const pagos=a?D.pagos.filter(p=>p.alumnoId===a.id).sort((x,y)=>String(x.fecha).localeCompare(y.fecha)):[];
+  const hist=a?(a.historial||[]).slice().sort((x,y)=>String(x.fecha).localeCompare(y.fecha)):[];
+  const tec=(c&&c.tecnicas||[]);
+  const S=[];
+  if(a&&a.foto) S.push({t:'foto',datos:a.foto});
+  S.push({t:'campos',tit:'Datos personales',pares:[
+    ['Nombre completo', a?nombreAlumno(a):VACIO],
+    ['Fecha de nacimiento', a&&a.nacim?fechaLarga(a.nacim):VACIO],
+    ['Edad', a&&edadDe(a.nacim)!==null?edadDe(a.nacim)+' años ('+(menor?'menor de edad':'adulto')+')':VACIO],
+    ['Teléfono', a?a.tel:VACIO],
+    ['Correo', a?a.correo:VACIO],
+    ['Dirección', a?dirTexto(a):VACIO],
+  ]});
+  S.push({t:'campos',tit:'En el dojo',pares:[
+    ['Grupo', a?nombreGrupo(a.grupoId):VACIO],
+    ['Días que toma clase', a?(a.dias||[]).map(i=>DIAS[i]).join(', '):VACIO],
+    ['Se inscribió el', a&&a.desde?fechaLarga(a.desde):VACIO],
+    ['Estado', a?({activo:'Activo',pausa:'En pausa',baja:'Se dio de baja'}[a.estadoAl||'activo']):VACIO],
+    ['Talla de uniforme', a?a.talla:VACIO],
+    ['Grado actual', c?nombreGrado(c):VACIO],
+    ['Clases en total', a?totalClases(a.id):VACIO],
+    ['Con este grado', e?e.clases+' clases · '+e.meses+' meses':VACIO],
+    ['Última vez que vino', a&&ultimaClase(a.id)?fechaLarga(ultimaClase(a.id)):VACIO],
+  ]});
+  const perPersona=(t,p)=>({t:'campos',tit:t,pares:[
+    ['Nombre', p?nombrePersona(p):VACIO],
+    ['Parentesco', p?p.parentesco:VACIO],
+    ['Teléfono', p?p.tel:VACIO],
+    ['Correo', p?p.correo:VACIO],
+    ['Dirección', p?dirTexto(p):VACIO],
+  ]});
+  if(menor){ S.push(perPersona('Madre', a?a.madre:null)); S.push(perPersona('Padre', a?a.padre:null)); }
+  S.push(perPersona('Contacto de emergencia', a?a.emerg:null));
+  S.push({t:'campos',tit:'Salud y permisos',pares:[
+    ['Alergias o condiciones médicas', a?(a.medico||'Ninguna reportada'):VACIO],
+    ['Quién puede recogerlo', a?a.recogen:VACIO],
+    ['Permiso de fotos y redes', a?siNo(a.permisoFotos):VACIO],
+    ['Permiso de participación firmado', a?(a.waiver&&a.waiver.firmado?'Sí · '+fechaLarga(a.waiver.fecha):'NO'):VACIO],
+  ]});
+  if(a&&a.firma&&a.firma.trazo)
+    S.push({t:'firmaimg',datos:a.firma.trazo,
+      pie:a.firma.nombre+(a.firma.parentesco?' · '+a.firma.parentesco:'')+' · '+fechaLarga(a.firma.fecha)});
+  S.push({t:'salto'});
+  S.push({t:'campos',tit:'Dinero',pares:[
+    ['Inscripción', a&&a.inscMonto!==''&&a.inscMonto!==undefined?money(a.inscMonto):VACIO],
+    ['La inscripción incluye uniforme', a?siNo(a.inscUniforme!==false):VACIO],
+    ['Inscripción pagada el', a&&a.inscFecha?fechaLarga(a.inscFecha):VACIO],
+    ['Cada cuánto paga', a?etiquetaFrec(a):VACIO],
+    ['Cuota base', a?money(a.cuota===''||a.cuota===undefined?D.config.cuota:a.cuota):VACIO],
+    ['Descuento de familia', a&&porId(D.familias,a.familiaId)?(porId(D.familias,a.familiaId).descuento||0)+'%':'—'],
+    ['Cuota cada vez (ya con descuento)', a?money(cuotaPorVez(a)):VACIO],
+    ['Al mes', a?money(cuotaDe(a,mesActual())):VACIO],
+    ['Familia', a&&porId(D.familias,a.familiaId)?porId(D.familias,a.familiaId).nombre:VACIO],
+    ['Beca', a&&a.beca&&a.beca.activa?'Sí, hasta '+mesBonito(ultimoMesBeca(a)):'No'],
+  ]});
+  S.push({t:'tabla',tit:'Pagos',cab:['Fecha','Mes que paga','Monto','Cómo pagó','Nota'],
+    filas: pagos.length? pagos.map(p=>[fCorta(p.fecha)+'/'+String(p.fecha).slice(0,4),
+      mesBonito(p.mes), money(p.monto), p.metodo||'', p.nota||''])
+      : [['','','','',''],['','','','',''],['','','','','']]});
+  S.push({t:'tabla',tit:'Su camino en los cinturones',cab:['Fecha','Grado que sacó','Nota'],
+    filas: hist.length? hist.map(x=>{const cc=porId(D.cinturones,x.cinturonId);
+      return [fechaLarga(x.fecha), cc?nombreGrado(cc):'', x.nota||''];})
+      : [['','',''],['','','']]});
+  S.push({t:'tabla',tit:'Técnicas de su grado actual',cab:['Técnica','¿La tiene?'],
+    filas: tec.length? tec.map(t=>[t.nombre, a&&(a.tecnicas||[]).includes(t.id)?'Sí':'—']) : [['','']]});
+  S.push({t:'texto',tit:'Notas',parrafos:[a&&a.nota?a.nota:'____________________________________________________________']});
+  S.push({t:'firma',etiquetas:['Firma del instructor','Nombre','Fecha']});
+  return {titulo:'Expediente · '+(a?nombreAlumno(a):'EN BLANCO'),
+    subtitulo:'Expediente completo del alumno · '+fechaLarga(hoyISO()), secciones:S};
+}
+
+/* ---------- 2. TODOS LOS EXPEDIENTES ---------- */
+function infTodosExpedientes(){
+  const S=[];
+  alumnosActivos().forEach((a,i)=>{
+    if(i) S.push({t:'salto'});
+    const x=infExpediente(a);
+    S.push({t:'texto',tit:nombreAlumno(a),parrafos:[]});
+    x.secciones.forEach(s=>S.push(s));
+  });
+  return {titulo:'Todos los expedientes',
+    subtitulo:alumnosActivos().length+' alumnos · '+fechaLarga(hoyISO()), secciones:S};
+}
+
+/* ---------- 3. DIRECTORIO ---------- */
+function infDirectorio(){
+  return {titulo:'Directorio de alumnos', subtitulo:fechaLarga(hoyISO()), secciones:[
+    {t:'tabla',tit:'Alumnos activos',
+     cab:['Alumno','Edad','Grado','Grupo','Tel. del alumno','A quién llamar','Tel.','Dirección'],
+     filas: alumnosActivos().map(a=>{
+       const q = esMenor(a) ? (a.madre&&a.madre.nom? nombrePersona(a.madre)
+                   : (a.padre&&a.padre.nom? nombrePersona(a.padre) : (a.emerg?nombrePersona(a.emerg):'')))
+                : (a.emerg?nombrePersona(a.emerg):'');
+       return [nombreAlumno(a), edadDe(a.nacim)===null?'':edadDe(a.nacim),
+         (cintDe(a)||{}).nombre||'', nombreGrupo(a.grupoId), a.tel||'—', q, telDeAviso(a), dirTexto(a)];})}]};
+}
+
+/* ---------- 4. CONTACTOS DE EMERGENCIA ---------- */
+function infEmergencia(){
+  return {titulo:'Contactos de emergencia', subtitulo:'Tener siempre a mano en el dojo', secciones:[
+    {t:'tabla',tit:'A quién llamar',
+     cab:['Alumno','Edad','Madre / Padre','Teléfono','Emergencia','Teléfono','Alergias / condiciones'],
+     filas: alumnosActivos().map(a=>{
+       const m=a.madre&&a.madre.nom? nombrePersona(a.madre) : (a.padre&&a.padre.nom? nombrePersona(a.padre):'');
+       const mt=(a.madre&&a.madre.tel)||(a.padre&&a.padre.tel)||'';
+       return [nombreAlumno(a), edadDe(a.nacim)===null?'':edadDe(a.nacim), m, mt,
+         a.emerg?nombrePersona(a.emerg):'', a.emerg?a.emerg.tel:'', a.medico||'—'];})},
+    {t:'texto',parrafos:['En caso de emergencia grave: llamar al 911 primero, después a la familia.']}]};
+}
+
+/* ---------- 5. ASISTENCIA ---------- */
+function infAsistencia(mk){
+  mk=mk||mesActual();
+  const ses=D.asistencia.filter(s=>String(s.fecha).slice(0,7)===mk)
+    .sort((a,b)=>String(a.fecha).localeCompare(b.fecha));
+  const dias=[...new Set(ses.map(s=>s.fecha))];
+  const cab=['Alumno',...dias.map(d=>fCorta(d)),'Total'];
+  const filas=alumnosActivos().map(a=>{
+    let n=0;
+    const c=dias.map(d=>{ const vino=ses.some(s=>s.fecha===d&&(s.presentes||[]).includes(a.id));
+      if(vino) n++; return vino?'X':''; });
+    return [nombreAlumno(a),...c,n];
+  });
+  return {titulo:'Asistencia · '+mesBonito(mk), subtitulo:dias.length+' clases en el mes', secciones:[
+    {t:'tabla',tit:'Quién vino a cada clase',cab, filas: filas.length?filas:[['—']]}]};
+}
+function infAsistenciaBlanco(){
+  const cab=['Alumno',...Array.from({length:14},(_,i)=>'___')];
+  return {titulo:'Hoja de asistencia en blanco', subtitulo:'Para pasar lista a mano en el dojo', secciones:[
+    {t:'campos',tit:'Datos de la hoja',pares:[['Grupo',''],['Mes',''],['Instructor','']]},
+    {t:'tabla',tit:'Marca con X quién vino',cab,
+     filas: alumnosActivos().length? alumnosActivos().map(a=>[nombreAlumno(a),...Array(14).fill('')])
+       : Array.from({length:25},()=>Array(15).fill(''))},
+    {t:'firma',etiquetas:['Firma del instructor','Fecha']}]};
+}
+
+/* ---------- 6. CUOTAS ---------- */
+function infCuotasMes(mk){
+  mk=mk||mesActual();
+  const filas=alumnosActivos().map(a=>{
+    const toca=cuotaDe(a,mk), pag=pagadoDelMes(a.id,mk), debe=debeDelMes(a,mk);
+    return [nombreAlumno(a), etiquetaFrec(a), money(cuotaPorVez(a)), money(toca), money(pag),
+      debe>0?money(debe):'—', becadoEn(a,mk)?'Becado':(a.estadoAl==='pausa'?'En pausa':'')];
+  });
+  return {titulo:'Cuotas · '+mesBonito(mk), subtitulo:'Cobrado '+money(cobradoDelMes(mk))+
+      ' de '+money(esperadoDelMes(mk)), secciones:[
+    {t:'tabla',tit:'Mes por alumno',
+     cab:['Alumno','Frecuencia','Cada vez','Le toca el mes','Pagó','Debe','Nota'], filas},
+    {t:'campos',tit:'Resumen',pares:[
+      ['Esperado del mes', money(esperadoDelMes(mk))],
+      ['Cobrado', money(cobradoDelMes(mk))],
+      ['Falta por cobrar', money(Math.max(0,esperadoDelMes(mk)-cobradoDelMes(mk)))],
+      ['Alumnos que deben', deudoresDelMes(mk).length]]}]};
+}
+function infCuotasAnio(anio){
+  anio=anio||new Date().getFullYear();
+  const meses=Array.from({length:12},(_,i)=>anio+'-'+String(i+1).padStart(2,'0'));
+  const filas=alumnosActivos().map(a=>[nombreAlumno(a),
+    ...meses.map(mk=>{ const d=debeDelMes(a,mk); const p=pagadoDelMes(a.id,mk);
+      return p>0? money(p) : (d>0?'debe':'—'); })]);
+  const tot=meses.map(mk=>money(cobradoDelMes(mk)));
+  return {titulo:'Cuotas del año '+anio, subtitulo:'Mes por mes', secciones:[
+    {t:'tabla',tit:'Lo que pagó cada alumno',cab:['Alumno',...MES3.slice(1)],filas},
+    {t:'tabla',tit:'Cobrado por mes',cab:MES3.slice(1),filas:[tot]}]};
+}
+function infPagosAlumno(a){
+  const pagos=D.pagos.filter(p=>p.alumnoId===a.id).sort((x,y)=>String(x.fecha).localeCompare(y.fecha));
+  return {titulo:'Pagos · '+nombreAlumno(a), subtitulo:'Total pagado '+money(pagos.reduce((s,p)=>s+n2(p.monto),0)),
+    secciones:[{t:'tabla',tit:'Todos sus pagos',cab:['Fecha','Mes','Monto','Cómo pagó','Nota'],
+      filas:pagos.length?pagos.map(p=>[fechaLarga(p.fecha),mesBonito(p.mes),money(p.monto),p.metodo||'',p.nota||'']):[['','','','','']]}]};
+}
+
+/* ---------- 7. CINTURONES ---------- */
+function infCinturones(){
+  const S=[{t:'tabla',tit:'Escalera de grados',
+    cab:['#','Grado','Kyu / Dan','Clases','Meses','Técnicas','Alumnos'],
+    filas:D.cinturones.slice().sort((a,b)=>a.orden-b.orden).map((c,i)=>[i+1,c.nombre,c.kyu||'—',
+      c.clases,c.meses,(c.tecnicas||[]).length, alumnosActivos().filter(a=>a.cinturonId===c.id).length])}];
+  D.cinturones.slice().sort((a,b)=>a.orden-b.orden).forEach(c=>{
+    if(!(c.tecnicas||[]).length) return;
+    S.push({t:'tabla',tit:'Técnicas · '+c.nombre,cab:['Técnica'],filas:c.tecnicas.map(t=>[t.nombre])});
+  });
+  return {titulo:'Programa de cinturones y técnicas', subtitulo:D.cinturones.length+' grados', secciones:S};
+}
+
+/* ---------- 8. EXÁMENES ---------- */
+function infExamenes(){
+  const S=[];
+  if(!D.examenes.length) S.push({t:'texto',parrafos:['Todavía no hay exámenes anotados.']});
+  D.examenes.slice().sort((a,b)=>String(b.fecha).localeCompare(a.fecha)).forEach(x=>{
+    S.push({t:'tabla',tit:x.nombre+' · '+fechaLarga(x.fecha)+(x.cerrado?' (cerrado)':' (abierto)'),
+      cab:['Alumno','De','A','Kata','Kumite','Kihon','Espíritu','Resultado','Nota'],
+      filas:(x.alumnos||[]).map(al=>{
+        const a=porId(D.alumnos,al.alumnoId), de=porId(D.cinturones,al.deId), aa=porId(D.cinturones,al.aId);
+        return [a?nombreAlumno(a):'', de?de.nombre:'', aa?aa.nombre:'',
+          al.Kata||'', al.Kumite||'', al.Kihon||'', al['Espíritu']||'',
+          al.paso===true?'PASÓ':(al.paso===false?'no pasó':'—'), al.nota||''];})});
+  });
+  return {titulo:'Exámenes y resultados', subtitulo:D.examenes.length+' exámenes', secciones:S};
+}
+function infExamenBlanco(){
+  return {titulo:'Planilla de examen en blanco', subtitulo:'Para llenar a mano en el examen', secciones:[
+    {t:'campos',tit:'Datos del examen',pares:[['Nombre del examen',''],['Fecha',''],['Instructor','']]},
+    {t:'tabla',tit:'Alumnos',cab:['Alumno','De','A','Kata','Kumite','Kihon','Espíritu','Pasó','Nota'],
+     filas:Array.from({length:20},()=>Array(9).fill(''))},
+    {t:'firma',etiquetas:['Firma del instructor','Nombre','Fecha']}]};
+}
+
+/* ---------- 9. FAMILIAS, GRUPOS, BITÁCORA ---------- */
+function infFamilias(){
+  return {titulo:'Familias', subtitulo:D.familias.length+' familias', secciones:[
+    {t:'tabla',tit:'Familias y descuentos',cab:['Familia','Descuento','Alumnos'],
+     filas:D.familias.length?D.familias.map(f=>[f.nombre,(f.descuento||0)+'%',
+       D.alumnos.filter(a=>a.familiaId===f.id).map(a=>nombreCorto(a)).join(', ')]):[['','','']]}]};
+}
+function infGrupos(){
+  return {titulo:'Grupos y horarios', subtitulo:D.grupos.length+' grupos', secciones:[
+    {t:'tabla',tit:'Horarios',cab:['Grupo','Desde','Hasta','Días','Alumnos','Activo'],
+     filas:D.grupos.map(g=>[g.nombre,hora12(g.desde),hora12(g.hasta),
+       (g.dias||[]).map(i=>DIA3[i]).join(', '), alumnosDeGrupo(g.id).length, siNo(g.activo!==false)])}]};
+}
+function infBitacora(){
+  const b=(D.bitacora||[]).slice(-500).reverse();
+  return {titulo:'Bitácora del dojo', subtitulo:'Últimos '+b.length+' movimientos', secciones:[
+    {t:'tabla',tit:'Qué se hizo y cuándo',cab:['Fecha','Hora','Qué pasó'],
+     filas:b.length?b.map(x=>{const d=new Date(x.f);
+       return [d.toLocaleDateString('es-US'), d.toLocaleTimeString('es-US',{hour:'2-digit',minute:'2-digit'}), x.t];})
+       :[['','','']]}]};
+}
+function infResumenDojo(){
+  const mk=mesActual();
+  return {titulo:'Resumen del dojo', subtitulo:fechaLarga(hoyISO()), secciones:[
+    {t:'campos',tit:'Números de hoy',pares:[
+      ['Alumnos activos', alumnosActivos().length],
+      ['Alumnos en pausa', D.alumnos.filter(a=>a.estadoAl==='pausa').length],
+      ['Dados de baja', D.alumnos.filter(a=>a.estadoAl==='baja').length],
+      ['Menores de edad', alumnosActivos().filter(a=>esMenor(a)).length],
+      ['Con permiso firmado', alumnosActivos().filter(a=>a.firma&&a.firma.trazo).length],
+      ['Sin permiso firmado', alumnosActivos().filter(a=>!(a.firma&&a.firma.trazo)).length],
+      ['Listos para examen', alumnosActivos().filter(a=>elegibilidad(a).listo).length],
+      ['Clases pasadas en total', D.asistencia.length],
+      ['Esperado este mes', money(esperadoDelMes(mk))],
+      ['Cobrado este mes', money(cobradoDelMes(mk))],
+      ['Deben este mes', deudoresDelMes(mk).length]]},
+    {t:'tabla',tit:'Alumnos por grado',cab:['Grado','Cuántos'],
+     filas:D.cinturones.slice().sort((a,b)=>a.orden-b.orden)
+       .map(c=>[nombreGrado(c), alumnosActivos().filter(a=>a.cinturonId===c.id).length])
+       .filter(f=>f[1]>0)}]};
+}
+
+/* ---------- RESPALDO COMPLETO EN PAPEL ---------- */
+function infTodoElDojo(){
+  const partes=[infResumenDojo(),infDirectorio(),infEmergencia(),infCuotasMes(),infCuotasAnio(),
+    infCinturones(),infExamenes(),infFamilias(),infGrupos(),infTodosExpedientes(),infBitacora()];
+  const S=[];
+  partes.forEach((p,i)=>{
+    if(i) S.push({t:'salto'});
+    S.push({t:'texto',tit:'▌ '+p.titulo,parrafos:[p.subtitulo||'']});
+    p.secciones.forEach(s=>S.push(s));
+  });
+  return {titulo:'Respaldo completo del dojo', subtitulo:fechaLarga(hoyISO()), secciones:S};
+}
+
+/* =========================== PANTALLA DE IMPRIMIR =========================== */
+let IMP_ALUMNO='';
+PINTORES.imprimir=()=>{
+  const als=alumnosActivos();
+  if(!IMP_ALUMNO && als.length) IMP_ALUMNO=als[0].id;
+  const bt=(txt,fn)=>`<button class="btn" style="margin-top:6px" onclick="${fn}">${txt}</button>`;
+  $('v-imprimir').innerHTML=`
+  <div class="card"><div class="hd">🖨️ Centro de impresión</div>
+    <div class="mini">Todo sale en tres formatos: imprimir o guardar como PDF, Word y Excel.
+      Los de "en blanco" son para llenarlos a mano en el dojo.</div>
+  </div>
+
+  <div class="card"><div class="hd">👤 De un alumno</div>
+    <div class="campo"><label>Alumno</label><select id="imp-al" onchange="IMP_ALUMNO=this.value">
+      ${als.map(a=>`<option value="${a.id}"${a.id===IMP_ALUMNO?' selected':''}>${esc(nombreAlumno(a))}</option>`).join('')}
+    </select></div>
+    ${als.length?`
+      ${bt('📋 Expediente completo',"abrirInforme(infExpediente(porId(D.alumnos,IMP_ALUMNO)))")}
+      ${bt('💵 Historial de pagos',"abrirInforme(infPagosAlumno(porId(D.alumnos,IMP_ALUMNO)))")}
+      ${bt('📄 Permiso / waiver (imprimir)',"verWaiver(IMP_ALUMNO)")}
+      ${bt('📝 Ficha de inscripción (imprimir)',"verFichaInscripcion(IMP_ALUMNO)")}
+    `:'<div class="vacio-msj">Todavía no hay alumnos.</div>'}
+  </div>
+
+  <div class="card"><div class="hd">👥 Del dojo</div>
+    ${bt('📊 Resumen del dojo',"abrirInforme(infResumenDojo())")}
+    ${bt('📇 Directorio de alumnos',"abrirInforme(infDirectorio())")}
+    ${bt('🚑 Contactos de emergencia',"abrirInforme(infEmergencia())")}
+    ${bt('✓ Asistencia de este mes',"abrirInforme(infAsistencia())")}
+    ${bt('💵 Cuotas de este mes',"abrirInforme(infCuotasMes())")}
+    ${bt('📅 Cuotas del año',"abrirInforme(infCuotasAnio())")}
+    ${bt('🥋 Cinturones y técnicas',"abrirInforme(infCinturones())")}
+    ${bt('📋 Exámenes y resultados',"abrirInforme(infExamenes())")}
+    ${bt('👨‍👩‍👧 Familias',"abrirInforme(infFamilias())")}
+    ${bt('🕕 Grupos y horarios',"abrirInforme(infGrupos())")}
+    ${bt('📓 Bitácora',"abrirInforme(infBitacora())")}
+    ${bt('📖 Manual de uso completo',"imprimirManual()")}
+  </div>
+
+  <div class="card"><div class="hd">📄 En blanco, para llenar a mano</div>
+    ${bt('📋 Expediente en blanco',"abrirInforme(infExpediente(null))")}
+    ${bt('✓ Hoja de asistencia en blanco',"abrirInforme(infAsistenciaBlanco())")}
+    ${bt('📋 Planilla de examen en blanco',"abrirInforme(infExamenBlanco())")}
+    ${bt('📄 Permiso / waiver en blanco',"verWaiver('')")}
+    ${bt('📝 Ficha de inscripción en blanco',"verFichaInscripcion('')")}
+  </div>
+
+  <div class="card"><div class="hd">📦 Todo el dojo</div>
+    <div class="mini" style="margin-bottom:8px">Todo lo de arriba junto, de un tirón, para archivar en papel.
+      Puede ser un documento largo — dale tiempo.</div>
+    ${bt('📦 Respaldo completo en papel',"abrirInforme(infTodoElDojo())")}
+    ${bt('📋 Todos los expedientes',"abrirInforme(infTodosExpedientes())")}
+  </div>`;
+};
+
 function archivarAlumno(id){
   const a=porId(D.alumnos,id); a.activo=a.activo===false;
   log((a.activo?'Reactivó a ':'Marcó que se fue ')+nombreAlumno(a));
   guardar(); toast(a.activo?'Reactivado':'Marcado que se fue'); pintar();
 }
-async function borrarAlumno(id){
+function borrarAlumno(id){
   const a=porId(D.alumnos,id);
-  const cl=totalClases(id), pg=D.pagos.filter(p=>p.alumnoId===id).length;
-  if(cl||pg) return alert('No se puede borrar: '+nombreAlumno(a)+' tiene '+cl+' clase(s) y '+pg+' pago(s) anotados.\n\nUsa "Marcar que se fue" — así el historial se queda intacto.');
-  if(!confirm('¿Borrar a '+nombreAlumno(a)+'?')) return;
-  if(!await confirmarDueno('borrar al alumno '+nombreAlumno(a))) return;
-  D.alumnos=D.alumnos.filter(x=>x.id!==id);
-  log('Borró al alumno '+nombreAlumno(a));
-  guardar(); toast('Borrado'); ir('alumnos');
+  const nom=nombreAlumno(a);
+  confirmarBorrar('¿Borrar a '+nom+'?', cosasQueSeVan(a), async()=>{
+    if(!await confirmarDueno('borrar al alumno '+nom)) return;
+    D.pagos=D.pagos.filter(p=>p.alumnoId!==id);
+    D.asistencia.forEach(s=>{ s.presentes=(s.presentes||[]).filter(x=>x!==id); });
+    D.examenes.forEach(e=>{ e.alumnos=(e.alumnos||[]).filter(x=>x.alumnoId!==id); });
+    D.alumnos=D.alumnos.filter(x=>x.id!==id);
+    log('Borró al alumno '+nom);
+    guardar(); toast('Borrado'); ir('alumnos');
+  });
 }
 function verTecnicas(id){
   const a=porId(D.alumnos,id), c=cintDe(a);
@@ -2007,8 +2799,11 @@ function registrarPago(alumnoId){
    <div class="mini" style="margin-top:9px">Paga ${money(cuotaPorVez(a))} ${esc(etiquetaFrec(a))} · al mes ${money(cuotaDe(a,mk))}${falta>0?' · debe '+money(falta):' · ya está al día'}${becadoEn(a,mk)?' · 🎓 BECADO este mes':''}.</div>`);
 }
 function guardarPago(alumnoId){
-  const m=n2($('pg-monto').value);
-  if(!(m>0)) return toast('Escribe un monto mayor que cero.');
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['pg-monto','Monto del pago']]))) return;
+  const m=leerPlata('pg-monto');
+  if(!(m>0)){ marcarMal('pg-monto',true); sonError();
+    return avisarFaltan([{id:'pg-monto',etq:'El monto tiene que ser mayor que cero'}]); }
   const a=porId(D.alumnos,alumnoId);
   D.pagos.push({id:uid(),alumnoId,mes:$('pg-mes').value,fecha:$('pg-fecha').value||hoyISO(),
     monto:m,metodo:$('pg-como').value,nota:($('pg-nota').value||'').trim()});
@@ -2084,7 +2879,9 @@ function previaCinta(){
     color:COLOR_CINT[$('ci-base').value]},'gr');
 }
 function guardarCinturon(id){
-  const n=($('ci-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['ci-nom','Nombre del cinturón']]))) return;
+  const n=($('ci-nom').value||'').trim();
   const base=$('ci-base').value, franja=$('ci-franja').value;
   const o={nombre:n,base,franja,color:COLOR_CINT[base]||'#888',kyu:($('ci-kyu').value||'').trim(),
     clases:Number($('ci-clases').value)||0,meses:Number($('ci-meses').value)||0,rayas:0,
@@ -2102,11 +2899,13 @@ function agregarTecnica(cid){
 }
 function borrarTecnica(cid,tid){
   const c=porId(D.cinturones,cid), t=(c.tecnicas||[]).find(x=>x.id===tid);
-  if(!confirm('¿Borrar la técnica "'+(t?t.nombre:'')+'"?')) return;
-  c.tecnicas=c.tecnicas.filter(x=>x.id!==tid);
-  D.alumnos.forEach(a=>{ a.tecnicas=(a.tecnicas||[]).filter(x=>x!==tid); });
-  log('Borró la técnica "'+(t?t.nombre:'')+'"');
-  guardar(); editarCinturon(cid);
+  const cuantos=D.alumnos.filter(a=>(a.tecnicas||[]).includes(tid)).length;
+  confirmarBorrar('¿Borrar la técnica "'+(t?t.nombre:'')+'"?',
+    cuantos?['Se le desmarca a '+cuantos+' alumno(s) que ya la tenían']:[],
+    ()=>{ c.tecnicas=c.tecnicas.filter(x=>x.id!==tid);
+      D.alumnos.forEach(a=>{ a.tecnicas=(a.tecnicas||[]).filter(x=>x!==tid); });
+      log('Borró la técnica "'+(t?t.nombre:'')+'"');
+      guardar(); editarCinturon(cid); });
 }
 async function borrarCinturon(id){
   const c=porId(D.cinturones,id);
@@ -2317,7 +3116,9 @@ function editarGrupo(id){
         <button class="btn peligro" style="margin-top:8px" onclick="borrarGrupo('${id}')">🗑️ Borrar grupo</button>`:''}`);
 }
 function guardarGrupo(id){
-  const n=($('gr-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['gr-nom','Nombre del grupo']]))) return;
+  const n=($('gr-nom').value||'').trim();
   const dias=[...document.querySelectorAll('#gr-dias .pill.sel')].map(b=>Number(b.dataset.d));
   const o={nombre:n,desde:$('gr-desde').value||'18:00',hasta:$('gr-hasta').value||'19:00',dias};
   if(id){ Object.assign(porId(D.grupos,id),o); log('Modificó el grupo '+n); }
@@ -2362,7 +3163,9 @@ function editarFamilia(id){
    ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarFamilia('${id}')">🗑️ Borrar</button>`:''}`);
 }
 function guardarFamilia(id){
-  const n=($('fa-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['fa-nom','Nombre de la familia']]))) return;
+  const n=($('fa-nom').value||'').trim();
   const o={nombre:n,descuento:Number($('fa-desc').value)||0};
   if(id){ Object.assign(porId(D.familias,id),o); log('Modificó la familia '+n); }
   else { D.familias.push({id:uid(),...o}); log('Agregó la familia '+n); }
@@ -2371,10 +3174,12 @@ function guardarFamilia(id){
 function borrarFamilia(id){
   const f=porId(D.familias,id);
   const n=D.alumnos.filter(a=>a.familiaId===id).length;
-  if(n) return alert('No se puede borrar: '+n+' alumno(s) están en esta familia.');
-  if(!confirm('¿Borrar la familia '+f.nombre+'?')) return;
-  D.familias=D.familias.filter(x=>x.id!==id); log('Borró la familia '+f.nombre);
-  guardar(); cerrarHoja(); toast('Borrada'); ir('familias');
+  confirmarBorrar('¿Borrar la familia '+f.nombre+'?',
+    n?[n+' alumno(s) se quedan sin familia y pierden su descuento']:[],
+    ()=>{ D.alumnos.forEach(a=>{ if(a.familiaId===id) a.familiaId=''; });
+      D.familias=D.familias.filter(x=>x.id!==id);
+      log('Borró la familia '+f.nombre);
+      guardar(); toast('Borrada'); ir('familias'); });
 }
 /* =========================== CÓMO VA EL DOJO =========================== */
 let REP_ANIO=0;
@@ -2521,12 +3326,23 @@ PINTORES.backup=()=>{
     <div class="mini" style="margin-top:6px">Bájalo seguido. Si pierdes el aparato, esto es lo único que te devuelve todo.</div>
   </div>
   <div class="card"><div class="hd">Restaurar</div>
-    <input type="file" accept=".json" id="bk-file">
-    <button class="btn" style="margin-top:9px" onclick="restaurarBackup()">⬆️ Restaurar desde un backup</button>
-    <div class="mini" style="margin-top:6px">Reemplaza TODO lo que hay ahora. Baja un backup antes, por si acaso.</div>
+    <input type="file" accept=".json" id="bk-file" style="display:none" onchange="nombreArchivoBk()">
+    <button class="btn" onclick="$('bk-file').click()">📂 Escoger el archivo del backup</button>
+    <div class="mini" id="bk-nombre" style="margin-top:6px">Ningún archivo escogido todavía.</div>
+    <button class="btn" style="margin-top:9px" onclick="restaurarBackup()">⬆️ Restaurar desde ese backup</button>
+    <div class="mini" style="margin-top:6px">Sirve si cambias de teléfono o si se te pierde el aparato:
+      vuelve todo — alumnos, pagos, asistencia, fotos y firmas.
+      <b>Reemplaza TODO lo que hay ahora</b>, así que baja un backup antes, por si acaso.</div>
   </div>
   <div class="card"><div class="hd">👆 Huella digital</div>
     <div id="seg-huella"><div class="mini">Revisando el aparato…</div></div>
+  </div>
+  <div class="card"><div class="hd">🔔 Avisos y sonido</div>
+    <label class="check"><input type="checkbox" ${D.config.sonido!==false?'checked':''}
+      onchange="D.config.sonido=this.checked;guardar();if(this.checked)sonOK();toast('Guardado')">
+      <span>Sonido en los avisos</span></label>
+    <button class="btn" style="margin-top:8px" onclick="buscarVersionNueva(false)">🔄 Buscar si hay versión nueva</button>
+    <div class="mini" style="margin-top:6px">Versión que tienes ahora: <b>${esc(VERSION_APP)}</b></div>
   </div>
   <div class="card"><div class="hd">🔑 Cambiar la clave</div>
     <div class="campo"><input type="password" id="sg-vieja" placeholder="Clave actual"></div>
@@ -2595,82 +3411,220 @@ PINTORES.bitacora=()=>{
 };
 
 /* =========================== MANUAL =========================== */
+/* =========================== MANUAL ILUSTRADO =========================== */
+/* Los dibujos son SVG hechos a mano: se ven igual en la app y en el papel. */
+const G={};
+G.mapa=`<svg viewBox="0 0 300 178" class="dib">
+<rect x="112" y="4" width="76" height="26" rx="6" class="f1"/><text x="150" y="21" class="tc">INICIO</text>
+<rect x="6" y="52" width="64" height="24" rx="5" class="f2"/><text x="38" y="68" class="tc2">Pasar lista</text>
+<rect x="80" y="52" width="64" height="24" rx="5" class="f2"/><text x="112" y="68" class="tc2">Alumnos</text>
+<rect x="154" y="52" width="64" height="24" rx="5" class="f2"/><text x="186" y="68" class="tc2">Cuotas</text>
+<rect x="228" y="52" width="66" height="24" rx="5" class="f3"/><text x="261" y="68" class="tc2">☰ Menú</text>
+<path d="M150 30 L38 52 M150 30 L112 52 M150 30 L186 52 M150 30 L261 52" class="ln"/>
+<rect x="80" y="100" width="64" height="22" rx="5" class="f4"/><text x="112" y="115" class="tc3">Ficha</text>
+<path d="M112 76 L112 100" class="ln"/>
+<rect x="196" y="94" width="98" height="16" rx="4" class="f4"/><text x="245" y="106" class="tc3">Cinturones · Grupos</text>
+<rect x="196" y="114" width="98" height="16" rx="4" class="f4"/><text x="245" y="126" class="tc3">Exámenes · Familias</text>
+<rect x="196" y="134" width="98" height="16" rx="4" class="f4"/><text x="245" y="146" class="tc3">Documentos · Imprimir</text>
+<rect x="196" y="154" width="98" height="16" rx="4" class="f4"/><text x="245" y="166" class="tc3">Backup · Manual</text>
+<path d="M261 76 L261 94" class="ln"/>
+</svg>`;
+G.alumnoNuevo=`<svg viewBox="0 0 300 128" class="dib">
+${[['1','Datos','8'],['2','Padres','68'],['3','Dinero','128'],['4','Permisos','188'],['5','Firma','248']]
+  .map(([n,t,x])=>`<rect x="${x}" y="20" width="46" height="40" rx="7" class="f2"/>
+   <circle cx="${+x+23}" cy="14" r="10" class="f1"/><text x="${+x+23}" y="18" class="tc">${n}</text>
+   <text x="${+x+23}" y="44" class="tc2">${t}</text>`).join('')}
+<path d="M54 40 L66 40 M114 40 L126 40 M174 40 L186 40 M234 40 L246 40" class="fl"/>
+<rect x="8" y="80" width="286" height="34" rx="7" class="f4"/>
+<text x="150" y="94" class="tc3">Si es MENOR de 18 la app pide madre y padre sola.</text>
+<text x="150" y="107" class="tc3">Si es adulto, solo el contacto de emergencia.</text>
+</svg>`;
+G.cinturon=`<svg viewBox="0 0 300 118" class="dib">
+<rect x="30" y="16" width="150" height="42" rx="4" fill="#37588f"/>
+<rect x="30" y="30" width="150" height="14" fill="#68477f"/>
+<text x="200" y="26" class="tc4">azul</text>
+<text x="200" y="41" class="tc4">morado</text>
+<text x="200" y="56" class="tc4">azul</text>
+<path d="M186 22 L196 22 M186 37 L196 37 M186 52 L196 52" class="ln"/>
+<text x="150" y="80" class="tc3">Tres franjas del mismo alto, a lo largo.</text>
+<text x="150" y="94" class="tc3">Las de afuera del color del cinturón,</text>
+<text x="150" y="108" class="tc3">la del medio del color del grado que viene.</text>
+</svg>`;
+G.examen=`<svg viewBox="0 0 300 132" class="dib">
+<rect x="10" y="10" width="80" height="46" rx="7" class="f2"/><text x="50" y="30" class="tc2">CLASES</text><text x="50" y="45" class="tc3">24 de 24</text>
+<rect x="110" y="10" width="80" height="46" rx="7" class="f2"/><text x="150" y="30" class="tc2">MESES</text><text x="150" y="45" class="tc3">3 de 3</text>
+<rect x="210" y="10" width="80" height="46" rx="7" class="f2"/><text x="250" y="30" class="tc2">TÉCNICAS</text><text x="250" y="45" class="tc3">8 de 8</text>
+<path d="M50 56 L150 76 M150 56 L150 76 M250 56 L150 76" class="fl"/>
+<rect x="95" y="78" width="110" height="30" rx="7" class="f5"/>
+<text x="150" y="97" class="tc">🎓 LISTO PARA EXAMEN</text>
+<text x="150" y="124" class="tc3">Los tres tienen que estar completos. Tú pones los números.</text>
+</svg>`;
+G.dinero=`<svg viewBox="0 0 300 140" class="dib">
+<rect x="8" y="10" width="86" height="26" rx="6" class="f2"/><text x="51" y="27" class="tc2">Cuota base</text>
+<text x="104" y="27" class="tc4">−</text>
+<rect x="118" y="10" width="86" height="26" rx="6" class="f2"/><text x="161" y="27" class="tc2">Descuento familia</text>
+<text x="214" y="27" class="tc4">=</text>
+<rect x="228" y="10" width="64" height="26" rx="6" class="f5"/><text x="260" y="27" class="tc">Cada vez</text>
+<path d="M260 36 L260 52" class="fl"/>
+<rect x="60" y="54" width="200" height="26" rx="6" class="f4"/>
+<text x="160" y="71" class="tc3">Cada vez × veces al mes = lo del mes</text>
+<rect x="8" y="92" width="90" height="20" rx="5" class="f2"/><text x="53" y="106" class="tc3">Semanal × 4</text>
+<rect x="104" y="92" width="90" height="20" rx="5" class="f2"/><text x="149" y="106" class="tc3">Quincenal × 2</text>
+<rect x="200" y="92" width="90" height="20" rx="5" class="f2"/><text x="245" y="106" class="tc3">Mensual × 1</text>
+<text x="150" y="130" class="tc3">Si está becado o en pausa, no se le cobra ese mes.</text>
+</svg>`;
+G.atras=`<svg viewBox="0 0 300 140" class="dib">
+<rect x="90" y="6" width="120" height="22" rx="5" class="f2"/><text x="150" y="21" class="tc2">Foto en grande</text>
+<path d="M150 28 L150 42" class="fl"/><text x="196" y="40" class="tc3">atrás</text>
+<rect x="90" y="44" width="120" height="22" rx="5" class="f2"/><text x="150" y="59" class="tc2">Ficha del alumno</text>
+<path d="M150 66 L150 80" class="fl"/><text x="196" y="78" class="tc3">atrás</text>
+<rect x="90" y="82" width="120" height="22" rx="5" class="f2"/><text x="150" y="97" class="tc2">Alumnos</text>
+<path d="M150 104 L150 118" class="fl"/><text x="196" y="116" class="tc3">atrás</text>
+<rect x="90" y="120" width="120" height="18" rx="5" class="f5"/><text x="150" y="133" class="tc">Inicio → ¿salir?</text>
+</svg>`;
+G.backup=`<svg viewBox="0 0 300 118" class="dib">
+<rect x="14" y="18" width="86" height="44" rx="8" class="f2"/><text x="57" y="38" class="tc2">📱 Tu app</text><text x="57" y="53" class="tc3">alumnos, pagos</text>
+<path d="M104 30 L192 30" class="fl"/><text x="148" y="24" class="tc3">⬇️ bajar backup</text>
+<path d="M192 50 L104 50" class="fl"/><text x="148" y="66" class="tc3">⬆️ restaurar</text>
+<rect x="198" y="18" width="88" height="44" rx="8" class="f4"/><text x="242" y="38" class="tc3">📄 archivo</text><text x="242" y="53" class="tc3">.json</text>
+<text x="150" y="92" class="tc3">Bájalo seguido y guárdalo en un sitio seguro.</text>
+<text x="150" y="108" class="tc3">Restaurar REEMPLAZA todo lo que hay ahora.</text>
+</svg>`;
+G.imprimir=`<svg viewBox="0 0 300 126" class="dib">
+<rect x="100" y="6" width="100" height="22" rx="6" class="f1"/><text x="150" y="21" class="tc">Un informe</text>
+<path d="M150 28 L60 48 M150 28 L150 48 M150 28 L240 48" class="fl"/>
+<rect x="14" y="50" width="92" height="26" rx="6" class="f2"/><text x="60" y="67" class="tc2">🖨️ Imprimir / PDF</text>
+<rect x="110" y="50" width="80" height="26" rx="6" class="f2"/><text x="150" y="67" class="tc2">📝 Word</text>
+<rect x="194" y="50" width="92" height="26" rx="6" class="f2"/><text x="240" y="67" class="tc2">📊 Excel</text>
+<text x="150" y="98" class="tc3">Para el PDF: dale a Imprimir y en "Destino"</text>
+<text x="150" y="114" class="tc3">escoge "Guardar como PDF".</text>
+</svg>`;
+
 const MANUAL=[
- {t:'▶️ Para empezar', c:[
-   ['1 · Revisa tus grupos','Menú ☰ → Grupos y horarios. Vienen puestos el Grupo 1 (6:00–7:00 PM) y el Grupo 2 (7:00–8:00 PM). Cámbiales el nombre y marca los días que entrenan.'],
-   ['2 · Revisa los cinturones','Menú ☰ → Cinturones y técnicas. Viene la escalera completa del dojo: 22 grados, del cinturón blanco hasta 7mo Dan, con la franja del medio dibujada. Puedes cambiarle a cada uno el color, la franja, el kyu, cuántas clases y cuántos meses hacen falta, y sus técnicas.'],
-   ['3 · Agrega tus alumnos','Botón ALUMNOS → ➕ Agregar alumno. Con "Guardar y agregar otro" los metes todos seguidos sin salirte.'],
-   ['4 · Ponles foto','Desde la ficha del alumno, botón 📷 Foto. Vale la pena: pasar lista con caras es mucho más rápido que leer nombres.']
- ]},
- {t:'✓ Pasar lista', c:[
-   ['Cómo','Botón PASAR LISTA abajo. Escoge el grupo, toca la cara de cada alumno que vino, y GUARDAR. Nada más.'],
-   ['Otro día','Si se te olvidó pasar lista ayer, cambia la fecha arriba y la pasas igual.'],
-   ['Corregir','Si te equivocaste, vuelve al mismo día y grupo, arregla y guarda otra vez.'],
-   ['Para qué sirve','Cada clase que marcas cuenta para el examen del alumno. Por eso importa pasarla siempre.']
- ]},
- {t:'🎓 Quién puede examinarse', c:[
-   ['La app lo calcula sola','Menú ☰ → Listos para examen. Mira tres cosas de cada alumno: cuántas clases lleva con ese cinturón, cuántos meses, y cuántas técnicas ya domina.'],
-   ['Las reglas las pones tú','En Cinturones y técnicas le dices a cada cinturón qué hace falta. Por ejemplo: 24 clases, 3 meses y 8 técnicas.'],
-   ['Marcar técnicas','En la ficha del alumno, botón "Marcar técnicas". Tocas las que ya domina.'],
-   ['"Casi"','Los que están cerca salen aparte, con lo que les falta. Sirve para animarlos.']
- ]},
- {t:'📋 El día del examen', c:[
-   ['Crear el examen','Menú ☰ → Exámenes → Nuevo examen. Trae marcados los que están listos, pero puedes escoger a quien quieras.'],
-   ['Calificar en el tatami','Abre el examen en el teléfono o la tableta. Cada alumno tiene Kata, Kumite, Kihon y Espíritu, del 1 al 5. Tocas el número y ya.'],
-   ['Pasa o no pasa','Un toque. Puedes cambiarlo hasta que termines el examen.'],
-   ['Terminar','Botón "Terminar y promover". Los que pasaron reciben su cinturón nuevo solos, con la fecha y las notas guardadas en su camino.'],
-   ['Sin examen formal','Si quieres promover a alguien sin montar un examen, en su ficha hay "Anotar promoción a mano".']
- ]},
- {t:'💵 Las cuotas', c:[
-   ['La cuota general','En la pantalla de CUOTAS, abajo. Es la que se le aplica a todos.'],
-   ['Cuota distinta','Un alumno puede tener la suya en su ficha. Si la dejas en blanco, usa la general.'],
-   ['Hermanos','Menú ☰ → Familias. Creas la familia, le pones el descuento, y en la ficha de cada hermano la escoges. El descuento se aplica solo.'],
-   ['Anotar un pago','En CUOTAS, botón "Pagó" al lado del alumno. O desde su ficha.'],
-   ['Pagos partidos','Si te paga la mitad hoy y la otra mitad después, anota los dos. La app suma y sabe cuánto falta.'],
-   ['Un mes viejo','Puedes cambiar el mes arriba y anotar pagos atrasados.']
- ]},
- {t:'⚠️ Los que se están yendo', c:[
-   ['Por qué importa','Un alumno no se va de un día para otro. Primero deja de venir. Si lo ves a tiempo, lo llamas y lo recuperas.'],
-   ['Dónde','En el Inicio te sale el aviso, y en Menú ☰ → Cómo va el dojo está la lista completa con el teléfono del encargado.'],
-   ['Cuándo avisa','Cuando pasan 14 días sin venir.']
- ]},
- {t:'💾 El backup', c:[
-   ['Bájalo seguido','Menú ☰ → Backup y seguridad → Bajar backup.'],
-   ['Por qué','Todo se guarda SOLO en este aparato. No hay nube. Si lo pierdes o se borra el navegador, el backup es lo único que te devuelve todo.'],
-   ['Para pasar de la PC al teléfono','Bajas el backup en uno y lo restauras en el otro. La app no se sincroniza sola.'],
-   ['⚠️ Guárdalo bien','El backup lleva las fotos, los nombres y los teléfonos de menores de edad. Ponlo en un sitio seguro y no lo compartas.']
- ]},
- {t:'👆 Huella y clave', c:[
-   ['Prender la huella','Menú ☰ → Backup y seguridad. Se registra por aparato: la del teléfono no sirve en la PC.'],
-   ['Tu clave nunca deja de servir','Aunque tengas la huella, la casilla de la clave sigue ahí abajo.'],
-   ['Antes de borrar','Si dejas marcada la casilla, te pide la huella antes de borrar un alumno, una lista o un pago.']
- ]},
- {t:'❓ Si algo se ve raro', c:[
-   ['No puedo borrar un alumno','Si ya tiene clases o pagos anotados, la app no lo deja a propósito. Usa "Marcar que se fue" — así el historial se queda intacto.'],
-   ['No puedo borrar un cinturón o un grupo','Es porque hay alumnos usándolo. Muévelos primero.'],
-   ['"NO SE PUDO GUARDAR"','Casi siempre es por muchas fotos. Baja un backup enseguida y quítale la foto a los alumnos que ya no están.'],
-   ['Las clases no le cuentan al alumno','Fíjate que esté en el grupo correcto: la app cuenta las listas del grupo al que pertenece.']
- ]}
+{t:'🗺️ Cómo está organizada la app', g:G.mapa, c:[
+ ['Abajo, lo de todos los días','Inicio, Pasar lista, Alumnos y Cuotas. Son los cuatro botones que vas a usar en el tatami.'],
+ ['Arriba a la derecha, el menú ☰','Ahí está todo lo demás: cinturones, grupos, exámenes, familias, documentos, imprimir, backup y este manual.'],
+ ['Inicio te avisa','Lo primero que ves son los avisos del día: cumpleaños, cuotas vencidas, becas que se acaban y permisos sin firmar. Cada aviso es un botón: lo tocas y te lleva al alumno.'],
+ ['El botón de atrás','El de tu teléfono funciona bien: cierra lo que tengas abierto y te devuelve a la pantalla anterior. Solo en Inicio te pregunta si quieres salir.']]},
+
+{t:'▶️ Los primeros pasos', c:[
+ ['1 · Revisa tus grupos','☰ → Grupos y horarios. Vienen el Grupo 1 (6:00–7:00 PM) y el Grupo 2 (7:00–8:00 PM). Cámbiales el nombre y marca los días.'],
+ ['2 · Revisa los cinturones','☰ → Cinturones y técnicas. Viene la escalera completa: 22 grados, del blanco al 7mo Dan. Puedes cambiarle a cada uno el color, la franja, el kyu, cuántas clases y meses hacen falta, y sus técnicas.'],
+ ['3 · Agrega tus alumnos','ALUMNOS → ➕ Agregar. Con "Guardar y agregar otro" los metes todos seguidos.'],
+ ['4 · Ponles foto','Vale la pena: pasar lista con caras es mucho más rápido que leer nombres.'],
+ ['5 · Baja un backup','☰ → Backup. Hazlo el primer día y después cada semana.']]},
+
+{t:'👤 Agregar un alumno', g:G.alumnoNuevo, c:[
+ ['La ficha cambia sola','Pones la fecha de nacimiento y la app calcula la edad. Si es menor de 18, te pide los datos de la madre y del padre. Si es adulto, solo el contacto de emergencia.'],
+ ['El nombre va partido','Primer nombre, inicial del segundo, apellido paterno y apellido materno. Así se ordena bien y se imprime bien.'],
+ ['El código postal llena solo','Escribes el zip y la app pone la ciudad y el estado. Trae los 90 de Rhode Island.'],
+ ['La dirección se repite sola','Al escribir la calle te sale la lista de direcciones que ya tienes. Tocas una y llena ciudad, estado y zip de golpe. Y en la madre, el padre y emergencia está la palomita de "misma dirección que el alumno".'],
+ ['Campos obligatorios','Si falta alguno, la app suena, te lo dice en una lista y te pone el cursor en el primero que falta. No guarda a medias.'],
+ ['La foto','Dos botones: 📷 tomar con la cámara o 🖼️ escoger del álbum. Después, tocando la carita la ves en grande.']]},
+
+{t:'✓ Pasar lista', c:[
+ ['Cómo','Botón PASAR LISTA abajo. Escoges el grupo, tocas la cara de cada alumno que vino, y GUARDAR.'],
+ ['Otro día','Si se te olvidó pasar lista ayer, cambia la fecha arriba y la pasas igual.'],
+ ['Corregir','Vuelve al mismo día y grupo, arregla y guarda otra vez.'],
+ ['Para qué sirve','Cada clase que marcas cuenta para el examen del alumno. Por eso importa pasarla siempre.'],
+ ['En papel','Si un día prefieres papel: ☰ → Imprimir → Hoja de asistencia en blanco.']]},
+
+{t:'🥋 Los cinturones', g:G.cinturon, c:[
+ ['La escalera','22 grados: blanco, blanco raya amarilla (9no kyu), amarillo (8vo kyu), amarillo raya naranja, naranja (7mo kyu)… hasta marrón 1er kyu y de ahí los Dan hasta el 7mo.'],
+ ['Cómo se dibuja','Cada cinturón se pinta con tres franjas del mismo alto. Las de arriba y abajo del color del cinturón, la del medio del color del grado que viene.'],
+ ['Cámbialo a tu gusto','☰ → Cinturones y técnicas. A cada uno le puedes cambiar el nombre, el color, la franja, el kyu, las clases y meses que hacen falta, y sus técnicas.'],
+ ['Las técnicas','Le agregas a cada cinturón las técnicas que exige. Después, en la ficha del alumno, marcas las que ya domina.']]},
+
+{t:'🎓 Quién puede examinarse', g:G.examen, c:[
+ ['La app lo calcula sola','☰ → Listos para examen. Mira tres cosas: cuántas clases lleva con ESE cinturón, cuántos meses, y cuántas técnicas domina.'],
+ ['Ojo con esto','Las clases que cuentan son solo las de después de que sacó el cinturón que tiene puesto. Al promoverlo, la cuenta empieza de cero.'],
+ ['Las reglas las pones tú','En Cinturones y técnicas le dices a cada grado qué hace falta.'],
+ ['"Casi"','Los que están cerca salen aparte, con lo que les falta. Sirve para animarlos.']]},
+
+{t:'📋 El día del examen', c:[
+ ['Crear el examen','☰ → Exámenes → Nuevo. Vienen marcados los que están listos, pero puedes marcar a quien quieras.'],
+ ['La planilla','A cada alumno le pones nota del 1 al 5 en Kata, Kumite, Kihon y Espíritu, y decides si pasa o no.'],
+ ['Al cerrarlo','La app promueve sola a los que pasaron, les pone el cinturón nuevo, guarda la fecha en su historial y reinicia sus técnicas.'],
+ ['En papel','☰ → Imprimir → Planilla de examen en blanco, para llenarla a mano en el tatami.']]},
+
+{t:'💵 El dinero', g:G.dinero, c:[
+ ['Cada alumno paga a su manera','Semanal, quincenal o mensual. Tú lo eliges en su ficha.'],
+ ['La calculadora','Mientras escribes el monto, abajo te va enseñando lo que le toca cada vez y lo que suma al mes, ya con el descuento de familia aplicado.'],
+ ['Familias','Si tienes hermanos, los pones en una familia con descuento. Puedes crear la familia desde la misma ficha del alumno.'],
+ ['Becas','Le puedes dar beca de 1 a 12 meses. Mientras dure no se le cobra ni sale como que debe, y la app te avisa el mes que se le acaba.'],
+ ['En pausa','Si un alumno para un tiempo, ponlo "En pausa": sigue en la lista pero no se le cobra.'],
+ ['Inscripción','Se anota aparte, con la palomita de si incluye el uniforme.']]},
+
+{t:'📄 Documentos y firmas', c:[
+ ['El permiso (waiver)','☰ → Documentos. Sale en español y en inglés, una página cada idioma, con el logo del dojo. Léeselo al padre antes de que firme.'],
+ ['Firmar en la app','El padre firma con el dedo en la pantalla. La app guarda la firma con fecha y hora, y esa firma sale dibujada cuando imprimes el documento.'],
+ ['Menor o adulto','Si el alumno es menor, firma la madre o el padre. Si es adulto, firma él mismo.'],
+ ['Copia para la familia','Después de firmar, imprime el documento y entrégale la copia.'],
+ ['⚠️ Importante','Este waiver lo redactó la app, no un abogado. Enséñaselo a un abogado de Rhode Island antes de usarlo con los padres.']]},
+
+{t:'🖨️ Imprimir todo', g:G.imprimir, c:[
+ ['Dónde','☰ → Imprimir todo.'],
+ ['Tres formatos','Cada documento sale en tres: imprimir (o guardar como PDF), Word para editarlo, y Excel para las tablas.'],
+ ['Del alumno','Expediente completo, historial de pagos, permiso y ficha de inscripción.'],
+ ['Del dojo','Directorio, contactos de emergencia, asistencia, cuotas del mes y del año, cinturones, exámenes, familias, grupos y bitácora.'],
+ ['En blanco','Expediente, hoja de asistencia, planilla de examen, permiso y ficha, todos en blanco para llenar a mano.'],
+ ['📦 Respaldo completo','Todo el dojo en un solo documento, para archivar en papel.']]},
+
+{t:'🔙 El botón de atrás', g:G.atras, c:[
+ ['Cierra lo que esté encima','Si tienes una foto abierta o un formulario, atrás lo cierra y te deja donde estabas.'],
+ ['Te devuelve pantalla por pantalla','De la ficha a Alumnos, de Alumnos a Inicio.'],
+ ['Solo pregunta en Inicio','Si estás en Inicio y le das atrás, la app te pregunta si quieres salir. Nunca se cierra sin avisarte.']]},
+
+{t:'🔔 Avisos y sonidos', c:[
+ ['Cuando falta un dato','Suena, te sale la lista de lo que falta y el campo se pone rojo.'],
+ ['Cuando vas a borrar','Suena distinto y te dice exactamente qué se va a perder antes de que confirmes.'],
+ ['Cuando la app se actualiza','Al abrirla te avisa que ya estás en la versión nueva.'],
+ ['Cuando hay una versión nueva','La app revisa sola y te avisa. Le das a "Actualizar ahora" y listo. No se pierde nada: tus alumnos viven en el teléfono.'],
+ ['Apagar el sonido','☰ → Backup y seguridad → Avisos y sonido.']]},
+
+{t:'💾 Backup y seguridad', g:G.backup, c:[
+ ['Bajar backup','☰ → Backup. Guarda TODO el dojo en un archivo. Hazlo seguido.'],
+ ['Restaurar','Si cambias de teléfono o se te pierde el aparato: instalas la app, escoges el archivo del backup y vuelve todo. Ojo: reemplaza lo que haya ahora.'],
+ ['La clave','Solo tú la sabes. Si se te olvida, no hay forma de recuperarla — habría que empezar de cero. Guárdala en un sitio seguro.'],
+ ['La huella','En esa misma pantalla puedes registrar tu huella para entrar sin escribir la clave. Funciona en el teléfono; en la computadora muchas veces no.'],
+ ['⚠️ Datos de menores','Aquí hay fotos, nombres y teléfonos de niños. Nada sale de tu aparato. No compartas el backup con nadie.']]},
+
+{t:'❓ Si algo sale mal', c:[
+ ['No me deja guardar','Fíjate en el aviso: te dice exactamente qué campo falta.'],
+ ['No veo la versión nueva','☰ → Backup y seguridad → Buscar si hay versión nueva. Si sigue igual, cierra la app del todo y vuelve a abrirla.'],
+ ['Se me olvidó pasar lista','Cambia la fecha en Pasar lista y márcala igual.'],
+ ['Borré algo sin querer','Restaura el último backup. Por eso conviene bajarlo seguido.'],
+ ['No me deja poner más fotos','El aparato se llenó. Quítale la foto a los alumnos que ya no están.']]},
 ];
 let MAN_ABIERTO=-1;
 PINTORES.manual=()=>{
   $('v-manual').innerHTML=`
   <div class="card"><div class="hd">📖 Manual de uso</div>
-    <div class="mini">Toca cualquier tema para abrirlo. Está siempre aquí, no necesitas internet.</div></div>
-  ${MANUAL.map((s,i)=>`
-   <div class="card tight">
-     <button class="fila" style="width:100%;text-align:left;padding:4px 0"
-       onclick="MAN_ABIERTO=${MAN_ABIERTO===i?-1:i};PINTORES.manual()">
-       <div class="izq"><div class="n1" style="font-weight:600">${s.t}</div></div>
-       <span class="fl gris">${MAN_ABIERTO===i?'▾':'›'}</span></button>
-     ${MAN_ABIERTO===i?`<div style="margin-top:7px">${s.c.map(x=>`
-        <div style="padding:8px 0;border-top:1px solid var(--linea)">
-          <div style="font-weight:600;font-size:14px;margin-bottom:3px">${x[0]}</div>
-          <div class="mini" style="line-height:1.5;color:var(--texto2)">${x[1]}</div>
-        </div>`).join('')}</div>`:''}
-   </div>`).join('')}
-  <div class="nota" style="margin-top:10px">Si algo no te queda claro o la app hace algo raro, anótalo y me lo dices.</div>`;
+    <div class="mini">Toca cada tema para abrirlo. Puedes imprimirlo entero y tenerlo en el dojo.</div>
+    <button class="btn" style="margin-top:9px" onclick="imprimirManual()">🖨️ Imprimir el manual completo</button>
+  </div>
+  ${MANUAL.map((s,i)=>`<div class="card">
+    <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+      onclick="MAN_ABIERTO=${MAN_ABIERTO===i?-1:i};PINTORES.manual()">
+      <div class="izq"><div class="n1">${esc(s.t)}</div></div>
+      <span class="fl gris">${MAN_ABIERTO===i?'▾':'›'}</span></button>
+    ${MAN_ABIERTO===i?`${s.g?`<div class="dibcaja">${s.g}</div>`:''}
+      ${s.c.map(([k,v])=>`<div style="margin-top:9px">
+        <div class="n1">${esc(k)}</div><div class="mini">${esc(v)}</div></div>`).join('')}`:''}
+  </div>`).join('')}`;
 };
+function imprimirManual(){
+  let h=encabezadoDoc('MANUAL DE USO','USA KARATE ACADEMY');
+  h+=`<div class="tx">Manual de la app del dojo · versión ${esc(VERSION_APP)} · ${fechaLarga(hoyISO())}</div>`;
+  h+=`<h2>Índice</h2><table>${MANUAL.map((s,i)=>
+    `<tr><th style="width:8%">${i+1}</th><td>${esc(s.t)}</td></tr>`).join('')}</table>`;
+  MANUAL.forEach((s,i)=>{
+    h+=`<div class="${i?'nueva':''}"></div><h2>${i+1}. ${esc(s.t)}</h2>`;
+    if(s.g) h+=`<div class="dibimp">${s.g}</div>`;
+    s.c.forEach(([k,v])=>{ h+=`<div class="cl">${esc(k)}</div><div class="tx">${esc(v)}</div>`; });
+  });
+  abrirImpresion(h,'Manual de uso · Okamura Dojo');
+}
 
 </script>
 </body>
