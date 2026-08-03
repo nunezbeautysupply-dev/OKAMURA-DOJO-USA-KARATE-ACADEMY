@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260803f-DOJO-V3.1">
+<meta name="app-version" content="20260803g-DOJO-V3.2">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -198,6 +198,20 @@ svg.dib .tc{fill:var(--rojo);font-weight:700}
 svg.dib .tc2{fill:var(--texto);font-weight:600}
 svg.dib .tc3{fill:var(--texto3)}
 svg.dib .tc4{fill:var(--texto2);text-anchor:start}
+.emo{font-size:1.28em;line-height:1;display:inline-block;vertical-align:-0.12em}
+.hd .emo,.n2 .emo,.mini .emo,.chip .emo{font-size:1.35em}
+.btn .emo{font-size:1.3em}
+#abajo button .e,.rejilla .btn .e{font-size:23px!important}
+#abajo button .e{filter:drop-shadow(0 0 1px rgba(255,255,255,.5))!important}
+svg.carita{width:62%;height:62%;fill:#8fa0b2;display:block}
+.avatar svg.carita{width:60%;height:60%}
+.avatar.sm svg.carita{width:64%;height:64%}
+.visor .sinfoto svg.carita{width:120px;height:120px;fill:#9fb0c2;margin:0 auto}
+.avatar{display:flex;align-items:center;justify-content:center}
+svg.ic{width:1.25em;height:1.25em;fill:currentColor;display:inline-block;vertical-align:-0.22em}
+.rejilla .btn .e svg.ic{width:26px;height:26px;fill:#0d1013;vertical-align:0}
+#abajo button .e svg.ic{width:24px;height:24px;fill:currentColor;vertical-align:0}
+a[href^="tel:"] svg.ic,a[href^="sms:"] svg.ic{width:20px;height:20px;fill:currentColor;vertical-align:-0.25em}
 .firmacanvas{width:100%;height:160px;background:var(--campos);border:1px dashed var(--linea);
   border-radius:9px;touch-action:none;display:block}
 .condrop{position:relative}
@@ -250,7 +264,7 @@ textarea{width:100%;background:var(--campos);border:1px solid var(--linea);borde
 .rejilla .btn .e{filter:none!important}
 /* 2. cada botón del tablero con su color, para reconocerlo de un vistazo */
 .rejilla .btn{position:relative;padding-top:14px!important}
-.rejilla .btn .e{display:inline-flex!important;align-items:center;justify-content:center;
+.rejilla .btn .e{color:#0d1013!important;filter:drop-shadow(0 0 1.1px rgba(0,0,0,.9)) drop-shadow(0 1px 1px rgba(0,0,0,.45))!important;display:inline-flex!important;align-items:center;justify-content:center;
   width:42px;height:42px;border-radius:12px;margin:0 auto 6px!important;font-size:21px!important}
 .rejilla .btn:nth-child(1) .e{background:var(--ic1)}
 .rejilla .btn:nth-child(2) .e{background:var(--ic2)}
@@ -274,7 +288,7 @@ a[href^="tel:"], a[href^="sms:"]{color:var(--acento)!important;font-weight:600}
  --fondo:#000000; --tarjeta:#15181c; --tarjeta2:#1f242b; --tarjeta3:#2a3037;
  --campos:#1c2127; --linea:#414c58; --texto:#ffffff; --texto2:#d6dce2; --texto3:#b3bdc7;
  --verde:#67e08f; --ambar:#ffc85c; --rojo:#ff7f73; --acento:#f2c14e; --rojoDojo:#c0392b;
- --ic1:#2f5d8a; --ic2:#5a3f7d; --ic3:#8a6a1f; --ic4:#1f6b4a; --ic5:#8a3a2e; --ic6:#3f5a6b;
+ --ic1:#8fb6de; --ic2:#c3a8e8; --ic3:#e8cf8a; --ic4:#8fd9b5; --ic5:#f0a99e; --ic6:#a8c4d6;
 }
 body{background:#000}
 .wrap{background:#000}
@@ -357,10 +371,10 @@ body{background:#000}
   <div class="vista" id="v-bitacora"></div>
 </div>
 <div id="abajo">
-  <button data-ir="inicio" class="on"><span class="e">▤</span>INICIO</button>
-  <button data-ir="lista"><span class="e">✓</span>PASAR LISTA</button>
-  <button data-ir="alumnos"><span class="e">👥</span>ALUMNOS</button>
-  <button data-ir="cuotas"><span class="e">💵</span>CUOTAS</button>
+  <button data-ir="inicio" class="on"><span class="e" data-ico="inicio"></span>INICIO</button>
+  <button data-ir="lista"><span class="e" data-ico="lista"></span>PASAR LISTA</button>
+  <button data-ir="alumnos"><span class="e" data-ico="alumnos"></span>ALUMNOS</button>
+  <button data-ir="cuotas"><span class="e" data-ico="cuotas"></span>CUOTAS</button>
 </div>
 </div>
 
@@ -376,7 +390,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260803f-DOJO-V3.1';
+const VERSION_APP='20260803g-DOJO-V3.2';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -673,11 +687,13 @@ function ir(v){
   irSinPila(v);
   if(v==='inicio') PILA=['inicio'];
 }
-function pintar(){ if(PINTORES[vistaActual]) PINTORES[vistaActual](); }
+function pintar(){ if(PINTORES[vistaActual]) PINTORES[vistaActual]();
+  try{ agrandarIconos(); }catch(e){} }
 
 let cerrarCb=null;
 function hoja(titulo,html,cb){
   if(NAV_LISTA) marcarPaso();
+  setTimeout(()=>{ try{ agrandarIconos($('hoja')); }catch(e){} },0);
   $('hoja').innerHTML=`<div class="hoja-tit"><h3>${esc(titulo)}</h3>
     <button class="icobtn" onclick="cerrarHoja()">✕</button></div>${html}`;
   $('capa').classList.add('on'); cerrarCb=cb||null; $('hoja').scrollTop=0;
@@ -757,6 +773,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('btn-huella').onclick=entrarConHuella;
   $('cl0').addEventListener('keydown',e=>{if(e.key==='Enter')entrar();});
   $('cl2').addEventListener('keydown',e=>{if(e.key==='Enter')crearClave();});
+  document.querySelectorAll('[data-ico]').forEach(e=>{ e.innerHTML=ICO[e.dataset.ico]||''; });
   $('btn-menu').onclick=menu;
   document.querySelectorAll('#abajo button').forEach(b=>b.onclick=()=>ir(b.dataset.ir));
 });
@@ -830,12 +847,12 @@ PINTORES.inicio=()=>{
     <div class="fila"><span>Falta</span><span class="mono ${esp-cob>0?'ambar':'verde'}">${money(Math.max(0,esp-cob))}</span></div>
   </div>
   <div class="rejilla">
-    <button class="btn" onclick="ir('lista')"><span class="e">✓</span>Pasar lista</button>
-    <button class="btn" onclick="ir('alumnos')"><span class="e">👥</span>Alumnos</button>
-    <button class="btn" onclick="ir('elegibles')"><span class="e">🎓</span>Listos para examen</button>
-    <button class="btn" onclick="ir('cuotas')"><span class="e">💵</span>Cuotas</button>
-    <button class="btn" onclick="ir('reportes')"><span class="e">📊</span>Cómo va el dojo</button>
-    <button class="btn" onclick="ir('manual')"><span class="e">📖</span>Manual</button>
+    <button class="btn" onclick="ir('lista')"><span class="e">${ICO.lista}</span>Pasar lista</button>
+    <button class="btn" onclick="ir('alumnos')"><span class="e">${ICO.alumnos}</span>Alumnos</button>
+    <button class="btn" onclick="ir('elegibles')"><span class="e">${ICO.examen}</span>Listos para examen</button>
+    <button class="btn" onclick="ir('cuotas')"><span class="e">${ICO.cuotas}</span>Cuotas</button>
+    <button class="btn" onclick="ir('reportes')"><span class="e">${ICO.reportes}</span>Cómo va el dojo</button>
+    <button class="btn" onclick="ir('manual')"><span class="e">${ICO.manual}</span>Manual</button>
   </div>`;
   $('v-inicio').innerHTML=h;
 };
@@ -878,7 +895,7 @@ PINTORES.lista=()=>{
       const c=cintDe(a), on=LISTA.presentes.includes(a.id);
       return `<button class="cara ${on?'pres':''}" onclick="marcar('${a.id}')">
         ${on?'<span class="tick">✅</span>':''}
-        <div class="foto" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="foto" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
         <div class="nom">${esc(a.nombre)}</div>
         <div class="cint">${cintaHTML(c,true)}</div>
       </button>`;}).join('')}</div>`
@@ -959,7 +976,7 @@ PINTORES.alumnos=()=>{
     ${als.length?als.map(a=>{
       const c=cintDe(a), deuda=debeDelMes(a,mesActual());
       return `<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${a.id}')">
-        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
         <div class="izq"><div class="n1">${esc(nombreAlumno(a))}${a.activo===false?'<span class="chip">se fue</span>':''}${deuda>0?'<span class="chip a">debe</span>':''}</div>
         <div class="n2">${cintaHTML(c,true)} ${esc(nombreGrado(c))} · ${esc(nombreGrupo(a.grupoId))}</div></div>
         <span class="fl gris">›</span></button>`;}).join('')
@@ -983,7 +1000,7 @@ PINTORES.alumno=()=>{
   <button class="btn chico" style="margin-bottom:9px" onclick="ir('alumnos')">‹ Todos los alumnos</button>
   <div class="card">
     <div style="display:flex;gap:12px;align-items:center">
-      <div class="avatar tocable" onclick="verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="avatar tocable" onclick="verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:18.5px;font-weight:600">${esc(nombreAlumno(a))}</div>
         <div class="n2">${cintaHTML(c)} ${esc(nombreGrado(c))}</div>
@@ -1229,7 +1246,7 @@ function verFotoGrande(alumnoId){
   const cp=$('capa-foto');
   cp.innerHTML=`<div class="visor" onclick="event.stopPropagation()">
     <button class="cerrar-visor" onclick="cerrarFoto()">✕</button>
-    ${a.foto?`<img src="${a.foto}" alt="">`:'<div class="sinfoto">👤<div class="mini">Todavía no tiene foto</div></div>'}
+    ${a.foto?`<img src="${a.foto}" alt="">`:'<div class="sinfoto">'+CARA_VACIA+'<div class="mini">Todavía no tiene foto</div></div>'}
     <div class="pie">${esc(nombreAlumno(a))}</div>
     <div class="dosc" style="margin-top:9px">
       <button class="btn chico" onclick="cambiarFotoDesdeVisor('${a.id}',true)">📷 Tomar</button>
@@ -1638,6 +1655,53 @@ function imprimirExamen(exId){
   abrirImpresion(h,'Examen · '+x.nombre);
 }
 
+/* la silueta de "sin foto": dibujada por nosotros, así controlamos su color */
+const CARA_VACIA='<svg class="carita" viewBox="0 0 24 24" aria-hidden="true">'
+ +'<circle cx="12" cy="8.2" r="4.1"/><path d="M3.6 21c0-4.7 3.8-7.6 8.4-7.6s8.4 2.9 8.4 7.6z"/></svg>';
+/* agranda todos los emoji de la pantalla, de una vez y para siempre */
+const RE_EMOJI=/[\u{2190}-\u{2BFF}\u{2600}-\u{27BF}\u{FE0F}\u{1F000}-\u{1FAFF}]/u;
+function agrandarIconos(raiz){
+  const zonas = raiz? [raiz] : [...document.querySelectorAll('.vista.on, #barra, #abajo, .hoja, .avisocaja, .visor')];
+  zonas.forEach(z=>{
+    if(!z) return;
+    const w=document.createTreeWalker(z, NodeFilter.SHOW_TEXT, {acceptNode(n){
+      const p=n.parentElement;
+      if(!p) return NodeFilter.FILTER_REJECT;
+      if(p.classList.contains('emo')) return NodeFilter.FILTER_REJECT;
+      if(/^(SCRIPT|STYLE|INPUT|TEXTAREA|OPTION|SELECT|CANVAS|SVG|PATH)$/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+      return RE_EMOJI.test(n.nodeValue||'') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }});
+    const nodos=[]; let n; while(n=w.nextNode()) nodos.push(n);
+    nodos.forEach(nodo=>{
+      const t=nodo.nodeValue; const frag=document.createDocumentFragment();
+      let buf='';
+      for(const ch of t){
+        if(RE_EMOJI.test(ch)){
+          if(buf){ frag.appendChild(document.createTextNode(buf)); buf=''; }
+          const s=document.createElement('span'); s.className='emo'; s.textContent=ch;
+          frag.appendChild(s);
+        } else buf+=ch;
+      }
+      if(buf) frag.appendChild(document.createTextNode(buf));
+      nodo.parentNode.replaceChild(frag,nodo);
+    });
+  });
+}
+
+/* íconos dibujados por nosotros: color y nitidez garantizados en cualquier teléfono */
+function ico(d,extra){ return '<svg class="ic'+(extra?' '+extra:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+d+'</svg>'; }
+const ICO={
+ inicio: ico('<rect x="3" y="4" width="18" height="3.4" rx="1.2"/><rect x="3" y="10.3" width="18" height="3.4" rx="1.2"/><rect x="3" y="16.6" width="18" height="3.4" rx="1.2"/>'),
+ lista:  ico('<path d="M9.3 17.6 3.9 12.2l2.1-2.1 3.3 3.3 8.7-8.7 2.1 2.1z"/>'),
+ alumnos:ico('<circle cx="8.6" cy="7.6" r="3.5"/><circle cx="16.6" cy="8.6" r="2.8"/><path d="M1.8 19.6c0-3.6 3-5.9 6.8-5.9s6.8 2.3 6.8 5.9z"/><path d="M16.4 13.9c3.1.2 5.4 2.2 5.4 5.2h-4.2c0-2-.5-3.7-1.2-5.2z"/>'),
+ cuotas: ico('<rect x="1.8" y="5.4" width="20.4" height="13.2" rx="2.2"/><circle cx="12" cy="12" r="3.2" fill="#f0a99e"/><circle cx="5.4" cy="12" r="1.15" fill="#f0a99e"/><circle cx="18.6" cy="12" r="1.15" fill="#f0a99e"/>'),
+ examen: ico('<path d="M12 3 1.6 8.2 12 13.4l10.4-5.2z"/><path d="M5.6 11.4v4.4c0 1.9 2.9 3.4 6.4 3.4s6.4-1.5 6.4-3.4v-4.4L12 15z"/><rect x="21" y="8.6" width="1.4" height="6" rx=".7"/>'),
+ reportes:ico('<rect x="2.6" y="12.4" width="4.4" height="8.4" rx="1"/><rect x="9.8" y="7.4" width="4.4" height="13.4" rx="1"/><rect x="17" y="3.2" width="4.4" height="17.6" rx="1"/>'),
+ manual: ico('<path d="M3.2 4.2h6.4c1.4 0 2.4 1 2.4 2.3v13.3c0-1-.9-1.7-2.2-1.7H3.2z"/><path d="M20.8 4.2h-6.4c-1.4 0-2.4 1-2.4 2.3v13.3c0-1 .9-1.7 2.2-1.7h6.6z"/>'),
+ tel:    ico('<path d="M6.2 2.6c1 0 1.6.5 1.9 1.4l1.1 3c.3.9.1 1.6-.7 2.1l-1.3.9c1 2.2 2.6 3.8 4.8 4.8l.9-1.3c.5-.8 1.2-1 2.1-.7l3 1.1c.9.3 1.4.9 1.4 1.9v2.6c0 1.3-.9 2.2-2.2 2.2C9.2 20.6 3.4 14.8 3.4 4.8c0-1.3.9-2.2 2.2-2.2z"/>'),
+ sms:    ico('<path d="M12 3.4c5.3 0 9.6 3.4 9.6 7.6s-4.3 7.6-9.6 7.6c-.9 0-1.8-.1-2.6-.3l-4.6 2 1.2-3.5c-2.2-1.4-3.6-3.5-3.6-5.8 0-4.2 4.3-7.6 9.6-7.6z"/>'),
+};
+
 /* ---------- edad ---------- */
 function edadDe(nacim){
   if(!nacim) return null;
@@ -1773,7 +1837,7 @@ function editarAlumno(id){
         <div id="al-edad" class="mini">${ed===null?'Pon la fecha para saber la edad.':(ed+' años · '+(menor?'MENOR de edad':'ADULTO'))}</div>
       </div>
       <div style="text-align:center;flex:none">
-        <div class="avatar tocable" id="al-foto-prev" onclick="if(FOTO_TMP)verFotoTmp()" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="avatar tocable" id="al-foto-prev" onclick="if(FOTO_TMP)verFotoTmp()" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
         <div style="display:flex;gap:5px;margin-top:6px">
           <button class="btn chico" style="width:auto;padding:5px 7px" onclick="pedirFoto(true)">📷</button>
           <button class="btn chico" style="width:auto;padding:5px 7px" onclick="pedirFoto(false)">🖼️</button>
@@ -1986,13 +2050,13 @@ function filaPersona(p,titulo){
     <div class="n1">${esc(nombrePersona(p))}${p.parentesco?` <span class="chip">${esc(p.parentesco)}</span>`:''}</div>
     <div class="n2">${esc(titulo)}${p.tel?' · '+esc(p.tel):''}</div>
     ${dir?`<div class="mini">${esc(dir)}</div>`:''}</div>
-    ${p.tel?`<a class="btn chico" style="width:auto" href="tel:${esc(p.tel)}">📞</a>`:''}</div>`;
+    ${p.tel?`<a class="btn chico" style="width:auto" href="tel:${esc(p.tel)}">${ICO.tel}</a>`:''}</div>`;
 }
 function tarjetaContactos(a){
   const menor=esMenor(a);
   const hay = (menor&&((a.madre&&a.madre.nom)||(a.padre&&a.padre.nom))) || (a.emerg&&a.emerg.nom);
   if(!hay) return '';
-  return `<div class="card"><div class="hd">📞 Contactos</div>
+  return `<div class="card"><div class="hd">${ICO.tel} Contactos</div>
     ${menor?filaPersona(a.madre,'Madre'):''}
     ${menor?filaPersona(a.padre,'Padre'):''}
     ${filaPersona(a.emerg,'Emergencia')}</div>`;
@@ -2360,7 +2424,7 @@ PINTORES.documentos=()=>{
   </div>
   <div class="card"><div class="hd">✍️ De un alumno</div>
     ${D.alumnos.length? alumnosActivos().map(a=>`<div class="fila">
-      <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
       <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
         <div class="n2">${a.firma&&a.firma.trazo?`<span class="chip v">✍️ firmado ${fCorta(a.firma.fecha)}</span>`:'<span class="chip r">sin firmar</span>'}</div></div>
       <div style="text-align:right">
@@ -3069,19 +3133,19 @@ PINTORES.cuotas=()=>{
     ${deben.length?deben.map(a=>{
       const d=debeDelMes(a,mk), dias=diasEntre(vence,hoy);
       return `<div class="fila">
-        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
         <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
         <div class="n2">${money(d)}${mk===mesActual()?(dias>0?' · '+dias+' días de atraso':(dias===0?' · vence hoy':' · vence el '+(D.config.diaVence||5))):''}</div></div>
         <div style="text-align:right">
           <button class="btn chico" onclick="registrarPago('${a.id}')">Pagó</button>
-          ${telDeAviso(a)?`<a class="btn chico" style="margin-top:4px;display:block" href="sms:${esc(telDeAviso(a))}">📲</a>`:''}
+          ${telDeAviso(a)?`<a class="btn chico" style="margin-top:4px;display:block" href="sms:${esc(telDeAviso(a))}">${ICO.sms}</a>`:''}
         </div></div>`;}).join('')
       :'<div class="nota ok">✅ Todos al día este mes.</div>'}
   </div>
   <div class="card">
     <div class="hd">✅ Al día (${alDia.length})</div>
     ${alDia.length?alDia.map(a=>`<div class="fila">
-      <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
       <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
       <div class="n2">pagó ${money(pagadoDelMes(a.id,mk))}</div></div>
       <button class="btn chico" onclick="verPagos('${a.id}')">Ver</button></div>`).join('')
@@ -3260,7 +3324,7 @@ PINTORES.elegibles=()=>{
       e.faltanMeses?e.faltanMeses+' mes'+(e.faltanMeses===1?'':'es'):'',
       e.faltanTec?e.faltanTec+' técnica'+(e.faltanTec===1?'':'s'):''].filter(Boolean).join(' · ');
     return `<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${a.id}')">
-      <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+      <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
       <div class="izq"><div class="n1">${esc(nombreAlumno(a))} ${cintaHTML(e.c,true)}→${cintaHTML(e.sig,true)}</div>
       <div class="n2">${ok?`${e.clases} clases · ${e.meses} meses · ${e.hechas}/${e.tot} técnicas`:'le falta '+esc(falta)}</div></div>
       <span class="fl gris">›</span></button>`;
@@ -3345,7 +3409,7 @@ PINTORES.examen=()=>{
     const base=aa?requisitosDeCinturon(aa).map(r=>r.id):[];
     return `<div class="card">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:9px">
-        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
         <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(nombreAlumno(a))}</div>
         <div class="n2">${cintaHTML(de,true)} → ${cintaHTML(aa,true)} ${esc(aa?aa.nombre:'')}${g?' · '+esc(g.kyu):''}</div></div>
         ${al.paso===true?'<span class="chip v">PASÓ</span>':(al.paso===false?'<span class="chip r">NO PASÓ</span>':'')}
@@ -3584,10 +3648,10 @@ PINTORES.reportes=()=>{
     <div class="hd">⚠️ Ojo con estos (${desp.length})</div>
     <div class="mini" style="margin-bottom:8px">Un alumno no se va de un día para otro: primero deja de venir.</div>
     ${desp.length?desp.map(x=>`<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${x.a.id}')">
-      <div class="avatar sm" style="${x.a.foto?`background-image:url(${x.a.foto})`:''}">${x.a.foto?'':'👤'}</div>
+      <div class="avatar sm" style="${x.a.foto?`background-image:url(${x.a.foto})`:''}">${x.a.foto?'':CARA_VACIA}</div>
       <div class="izq"><div class="n1">${esc(nombreAlumno(x.a))}</div>
       <div class="n2">${x.nunca?'nunca ha venido':'no viene hace '+x.dias+' días'}${telDeAviso(x.a)?' · '+esc(telDeAviso(x.a)):''}</div></div>
-      ${telDeAviso(x.a)?`<a class="btn chico" href="tel:${esc(telDeAviso(x.a))}" onclick="event.stopPropagation()">📞</a>`:'<span class="fl gris">›</span>'}
+      ${telDeAviso(x.a)?`<a class="btn chico" href="tel:${esc(telDeAviso(x.a))}" onclick="event.stopPropagation()">${ICO.tel}</a>`:'<span class="fl gris">›</span>'}
       </button>`).join('')
       :'<div class="nota ok">✅ Todos vienen seguido.</div>'}
   </div>
