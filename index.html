@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260802b-DOJO-V1.2">
+<meta name="app-version" content="20260803a-DOJO-V2.0">
 <meta name="theme-color" content="#2f3438">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -87,8 +87,11 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .cara .cint{margin-top:3px;display:flex;align-items:center;justify-content:center;gap:3px}
 .cara .tick{position:absolute;top:3px;right:5px;font-size:14px}
 .pto{width:5px;height:5px;border-radius:50%;background:var(--texto2);display:inline-block}
-.cinta{display:inline-block;width:26px;height:9px;border-radius:2px;border:1px solid rgba(255,255,255,.45);vertical-align:middle}
-.cinta.sm{width:18px;height:7px}
+.cinta{display:inline-block;width:38px;height:15px;border-radius:2px;vertical-align:middle;position:relative;
+  overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)}
+.cinta i{position:absolute;left:0;right:0;top:33.33%;height:33.34%}
+.cinta.sm{width:26px;height:11px}
+.cinta.gr{width:66px;height:22px;border-radius:3px}
 
 /* ---- foto en fichas ---- */
 .avatar{width:64px;height:64px;border-radius:50%;background:var(--tarjeta3);background-size:cover;
@@ -165,6 +168,22 @@ table.t tr:last-child td{border-bottom:none}
   pointer-events:none;max-width:88%;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .foto-prev{max-width:100%;border-radius:var(--r);border:1px solid var(--linea);margin-top:7px}
+.tresc{display:grid;grid-template-columns:1.4fr .7fr .9fr;gap:8px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;cursor:pointer}
+.check input{width:17px;height:17px;flex:none;accent-color:var(--rojo)}
+.diassem{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.diassem .dia{background:var(--campos);border:1px solid var(--linea);border-radius:6px;
+  padding:6px 2px;text-align:center;font-size:10.5px;font-weight:700;color:var(--texto3);cursor:pointer}
+.diassem .dia.on{background:#4e2c29;border-color:var(--rojo);color:var(--rojo)}
+.diassem .dia input{display:none}
+.calc{background:var(--tarjeta2);border:1px solid var(--linea);border-radius:8px;padding:8px 10px;margin-top:9px}
+textarea{width:100%;background:var(--campos);border:1px solid var(--linea);border-radius:8px;
+  color:var(--texto);padding:9px;font:inherit;font-size:14px;resize:vertical}
+.aviso{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border-radius:8px;margin-bottom:6px;
+  font-size:12.5px;background:var(--tarjeta2);border:1px solid var(--linea)}
+.aviso.cump{background:#3d3a2b;border-color:#6b6238}
+.aviso.deu{background:#4a3327;border-color:#7a5334}
+.aviso.bec{background:#2f3f46;border-color:#4c6672}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 #pantalla-login .sello,#barra .marca i{background:var(--logo) center/contain no-repeat}
 #barra .marca i{width:19px;height:19px;display:inline-block;vertical-align:-4px;margin-right:6px}
@@ -236,23 +255,40 @@ table.t tr:last-child td{border-bottom:none}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260801a-DOJO-V1.0';
+const VERSION_APP='20260803a-DOJO-V2.0';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
+const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
+ azul:'#37588f',morado:'#68477f',marron:'#5e412c',negro:'#1c1c1c'};
+/* nombre, color base, color de la franja del medio (o ''), kyu, clases, meses */
 const CINTURONES_FABRICA=[
- ['Blanco',   '#f2f2f2', 20, 3, 2],
- ['Amarillo', '#e8c74a', 24, 3, 3],
- ['Naranja',  '#e08a44', 28, 4, 3],
- ['Verde',    '#5fa96b', 32, 4, 3],
- ['Azul',     '#4f7fbf', 36, 6, 3],
- ['Morado',   '#8a6bb0', 40, 6, 3],
- ['Marrón',   '#8a6242', 48, 8, 3],
- ['Negro',    '#2a2a2a', 60,12, 0],
+ ['Cinturón blanco',            'blanco',  '',        '',        12, 2],
+ ['Blanco · raya amarilla',     'blanco',  'amarillo','9no kyu', 12, 2],
+ ['Cinturón amarillo',          'amarillo','',        '8vo kyu', 16, 3],
+ ['Amarillo · raya naranja',    'amarillo','naranja', '',        16, 3],
+ ['Cinturón naranja',           'naranja', '',        '7mo kyu', 20, 3],
+ ['Naranja · raya verde',       'naranja', 'verde',   '',        20, 3],
+ ['Cinturón verde',             'verde',   '',        '6to kyu', 24, 4],
+ ['Verde · raya azul',          'verde',   'azul',    '',        24, 4],
+ ['Cinturón azul',              'azul',    '',        '5to kyu', 28, 4],
+ ['Azul · raya morada',         'azul',    'morado',  '',        28, 4],
+ ['Cinturón morado',            'morado',  '',        '4to kyu', 32, 6],
+ ['Morado · raya marrón',       'morado',  'marron',  '',        32, 6],
+ ['Cinturón marrón · 3er kyu',  'marron',  '',        '3er kyu', 40, 6],
+ ['Cinturón marrón · 2do kyu',  'marron',  '',        '2do kyu', 44, 8],
+ ['Cinturón marrón · 1er kyu',  'marron',  '',        '1er kyu', 48, 10],
+ ['Cinturón negro · Shodan',    'negro',   '',        '1er Dan', 60, 12],
+ ['Cinturón negro · Nidan',     'negro',   '',        '2do Dan', 80, 24],
+ ['Cinturón negro · Sandan',    'negro',   '',        '3er Dan', 90, 36],
+ ['Cinturón negro · Yondan',    'negro',   '',        '4to Dan', 90, 48],
+ ['Cinturón negro · Godan',     'negro',   '',        '5to Dan', 90, 60],
+ ['Cinturón negro · Rokudan',   'negro',   '',        '6to Dan', 90, 72],
+ ['Cinturón negro · Shichidan', 'negro',   '',        '7mo Dan', 90, 84],
 ];
 const TECNICAS_FABRICA={
- 'Blanco':['Seiza y rei','Zenkutsu dachi','Oi tsuki','Gedan barai','Mae geri','Kihon en línea'],
- 'Amarillo':['Kokutsu dachi','Age uke','Soto uke','Gyaku tsuki','Yoko geri keage','Mawashi geri','Taikyoku Shodan','Kumite básico 1'],
- 'Naranja':['Kiba dachi','Uchi uke','Shuto uke','Empi uchi','Yoko geri kekomi','Heian Shodan','Kumite básico 2','Rompimiento de agarre'],
+ 'Cinturón blanco':['Seiza y rei','Zenkutsu dachi','Oi tsuki','Gedan barai','Mae geri','Kihon en línea'],
+ 'Cinturón amarillo':['Kokutsu dachi','Age uke','Soto uke','Gyaku tsuki','Yoko geri keage','Mawashi geri','Taikyoku Shodan','Kumite básico 1'],
+ 'Cinturón naranja':['Kiba dachi','Uchi uke','Shuto uke','Empi uchi','Yoko geri kekomi','Heian Shodan','Kumite básico 2','Rompimiento de agarre'],
 };
 
 /* ---------- helpers ---------- */
@@ -287,10 +323,40 @@ const mesActual=()=>hoyISO().slice(0,7);
 function mesBonito(mk){ if(!mk) return ''; const [a,m]=mk.split('-'); return MESES[Number(m)]+' '+a; }
 
 /* ---------- guardar / cargar ---------- */
-function datosNuevos(){
-  const cints=CINTURONES_FABRICA.map((c,i)=>({id:uid(),nombre:c[0],color:c[1],orden:i,
-    clases:c[2],meses:c[3],rayas:c[4],
+function cinturonesDeFabrica(){
+  return CINTURONES_FABRICA.map((c,i)=>({id:uid(),nombre:c[0],base:c[1],franja:c[2],kyu:c[3],
+    color:COLOR_CINT[c[1]], orden:i, clases:c[4], meses:c[5], rayas:0,
     tecnicas:(TECNICAS_FABRICA[c[0]]||[]).map(t=>({id:uid(),nombre:t}))}));
+}
+/* pasa los datos viejos (8 cinturones) a la escalera nueva, sin perder alumnos */
+function migrarCinturones(){
+  if(!D || !D.cinturones) return false;
+  if(D.cinturones.some(c=>c.base)) return false;          // ya estaba migrado
+  const equiv={'Blanco':'Cinturón blanco','Amarillo':'Cinturón amarillo','Naranja':'Cinturón naranja',
+    'Verde':'Cinturón verde','Azul':'Cinturón azul','Morado':'Cinturón morado',
+    'Marrón':'Cinturón marrón · 3er kyu','Negro':'Cinturón negro · Shodan'};
+  const viejos=D.cinturones.slice();
+  const nuevos=cinturonesDeFabrica();
+  const porNombre={}; nuevos.forEach(c=>porNombre[c.nombre]=c);
+  const mapa={};
+  viejos.forEach(v=>{ const n=porNombre[equiv[v.nombre]||v.nombre]; if(n) mapa[v.id]=n.id; });
+  /* las técnicas que el maestro haya agregado a mano se conservan */
+  viejos.forEach(v=>{ const n=porNombre[equiv[v.nombre]||v.nombre]; if(!n) return;
+    (v.tecnicas||[]).forEach(t=>{ if(!n.tecnicas.some(x=>x.nombre===t.nombre)) n.tecnicas.push({id:t.id,nombre:t.nombre}); });
+    if(v.clases) n.clases=v.clases; if(v.meses) n.meses=v.meses; });
+  D.cinturones=nuevos;
+  (D.alumnos||[]).forEach(a=>{
+    if(mapa[a.cinturonId]) a.cinturonId=mapa[a.cinturonId];
+    else if(!porId(D.cinturones,a.cinturonId)) a.cinturonId=nuevos[0].id;
+    (a.historial||[]).forEach(x=>{ if(mapa[x.cinturonId]) x.cinturonId=mapa[x.cinturonId]; });
+  });
+  (D.examenes||[]).forEach(e=>{ if(mapa[e.cinturonId]) e.cinturonId=mapa[e.cinturonId];
+    (e.alumnos||[]).forEach(x=>{ if(mapa[x.deId]) x.deId=mapa[x.deId]; if(mapa[x.aId]) x.aId=mapa[x.aId]; }); });
+  log('Pasó los cinturones a la escalera de grados nueva');
+  return true;
+}
+function datosNuevos(){
+  const cints=cinturonesDeFabrica();
   return {
     v:1, creado:new Date().toISOString(), clave:null,
     escuela:{nombre:'OKAMURA DOJO USA KARATE ACADEMY'},
@@ -358,6 +424,7 @@ async function entrar(){
   msjLogin(''); abrirApp();
 }
 function abrirApp(){
+  if(migrarCinturones()) guardar();
   $('pantalla-login').style.display='none';
   $('app-contenido').style.display='block';
   ir('inicio');
@@ -435,14 +502,20 @@ function cerrarHoja(){ $('capa').classList.remove('on'); $('hoja').innerHTML='';
 
 /* ---------- cosas del dojo ---------- */
 function cintDe(a){ return porId(D.cinturones,a&&a.cinturonId) || D.cinturones[0] || null; }
-function cintaHTML(c,sm){ if(!c) return '';
-  return `<span class="cinta${sm?' sm':''}" style="background:${esc(c.color)}" title="${esc(c.nombre)}"></span>`; }
+function colorCint(c){ return (c&&c.color) || (c&&COLOR_CINT[c.base]) || '#888'; }
+function colorFranja(c){ return c&&c.franja? (COLOR_CINT[c.franja]||'') : ''; }
+function cintaHTML(c,tam){ if(!c) return '';
+  const cl = tam===true||tam==='sm' ? ' sm' : (tam==='gr' ? ' gr' : '');
+  const f = colorFranja(c);
+  return `<span class="cinta${cl}" style="background:${esc(colorCint(c))}" title="${esc(c.nombre)}">`
+    + (f?`<i style="background:${esc(f)}"></i>`:'') + `</span>`; }
+function nombreGrado(c){ if(!c) return '';
+  return c.nombre + (c.kyu? ' · '+c.kyu : ''); }
 function puntosHTML(n){ let h=''; for(let i=0;i<(n||0);i++) h+='<i class="pto"></i>'; return h; }
 function siguienteCint(c){ if(!c) return null;
   const orden=D.cinturones.slice().sort((a,b)=>a.orden-b.orden);
   const i=orden.findIndex(x=>x.id===c.id);
   return (i>=0 && i<orden.length-1) ? orden[i+1] : null; }
-function nombreAlumno(a){ return a? [a.nombre,a.apellido].filter(Boolean).join(' ') : ''; }
 function nombreGrupo(id){ const g=porId(D.grupos,id); return g?g.nombre:''; }
 function horarioGrupo(g){ return g? hora12(g.desde)+' – '+hora12(g.hasta) : ''; }
 function alumnosActivos(){ return D.alumnos.filter(a=>a.activo!==false); }
@@ -536,7 +609,7 @@ PINTORES.inicio=()=>{
   const pend=deudoresDelMes(mk);
   const desp=seDespegan();
   const eleg=alumnosActivos().map(a=>({a,e:elegibilidad(a)})).filter(x=>x.e.listo);
-  let h='';
+  let h=avisosHTML();
   if(!D.alumnos.length){
     h+=`<div class="card"><div class="hd">Primer paso</div>
       <div class="mini" style="margin-bottom:9px">Agrega tus alumnos. Después de eso, pasar lista te toma segundos.</div>
@@ -620,7 +693,7 @@ PINTORES.lista=()=>{
         ${on?'<span class="tick">✅</span>':''}
         <div class="foto" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
         <div class="nom">${esc(a.nombre)}</div>
-        <div class="cint">${cintaHTML(c,true)}${puntosHTML(a.rayas)}</div>
+        <div class="cint">${cintaHTML(c,true)}</div>
       </button>`;}).join('')}</div>`
       :'<div class="vacio-msj">Este grupo no tiene alumnos todavía.</div>'}
   </div>
@@ -680,7 +753,8 @@ PINTORES.alumnos=()=>{
   if(FA.ver==='inactivos') als=als.filter(a=>a.activo===false);
   if(FA.grupo) als=als.filter(a=>a.grupoId===FA.grupo);
   if(FA.q){ const n=norm(FA.q);
-    als=als.filter(a=>norm([nombreAlumno(a),a.tutor1n,a.tutor1t,a.tutor2n,(cintDe(a)||{}).nombre].join(' ')).includes(n)); }
+    als=als.filter(a=>norm([nombreAlumno(a),a.tel,nombrePersona(a.madre),nombrePersona(a.padre),
+      nombrePersona(a.emerg),a.ciudad,(cintDe(a)||{}).nombre].join(' ')).includes(n)); }
   als.sort((a,b)=>nombreAlumno(a).localeCompare(nombreAlumno(b)));
   $('v-alumnos').innerHTML=`
   <input type="text" placeholder="Buscar alumno o encargado…" value="${esc(FA.q)}"
@@ -700,7 +774,7 @@ PINTORES.alumnos=()=>{
       return `<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${a.id}')">
         <div class="avatar sm" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
         <div class="izq"><div class="n1">${esc(nombreAlumno(a))}${a.activo===false?'<span class="chip">se fue</span>':''}${deuda>0?'<span class="chip a">debe</span>':''}</div>
-        <div class="n2">${cintaHTML(c,true)} ${esc(c?c.nombre:'')} ${puntosHTML(a.rayas)} · ${esc(nombreGrupo(a.grupoId))}</div></div>
+        <div class="n2">${cintaHTML(c,true)} ${esc(nombreGrado(c))} · ${esc(nombreGrupo(a.grupoId))}</div></div>
         <span class="fl gris">›</span></button>`;}).join('')
       :'<div class="vacio-msj">Nadie con ese filtro.</div>'}
   </div>
@@ -725,7 +799,7 @@ PINTORES.alumno=()=>{
       <div class="avatar" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:17px;font-weight:600">${esc(nombreAlumno(a))}</div>
-        <div class="n2">${cintaHTML(c)} ${esc(c?c.nombre:'')} ${puntosHTML(a.rayas)}</div>
+        <div class="n2">${cintaHTML(c)} ${esc(nombreGrado(c))}</div>
         <div class="mini">${esc(nombreGrupo(a.grupoId))}${a.desde?' · desde '+fLarga(a.desde):''}</div>
       </div>
     </div>
@@ -736,15 +810,8 @@ PINTORES.alumno=()=>{
     </div>
   </div>
 
-  ${(a.tutor1n||a.tutor2n)?`<div class="card"><div class="hd">👨‍👩‍👧 Encargados</div>
-    ${a.tutor1n?`<div class="fila"><div class="izq"><div class="n1">${esc(a.tutor1n)}</div>
-      ${a.tutor1t?`<div class="n2">${esc(a.tutor1t)}</div>`:''}</div>
-      ${a.tutor1t?`<a class="btn chico" style="width:auto" href="tel:${esc(a.tutor1t)}">📞</a>`:''}</div>`:''}
-    ${a.tutor2n?`<div class="fila"><div class="izq"><div class="n1">${esc(a.tutor2n)}</div>
-      ${a.tutor2t?`<div class="n2">${esc(a.tutor2t)}</div>`:''}</div>
-      ${a.tutor2t?`<a class="btn chico" style="width:auto" href="tel:${esc(a.tutor2t)}">📞</a>`:''}</div>`:''}
-    ${fam?`<div class="fila"><span class="gris">Familia</span><span>${esc(fam.nombre)}</span></div>`:''}
-  </div>`:''}
+  ${tarjetaContactos(a)}
+  ${tarjetaDatos(a)}
 
   <div class="card">
     <div class="hd">📊 Cómo va</div>
@@ -761,7 +828,7 @@ PINTORES.alumno=()=>{
   <div class="card">
     <div class="hd">🎓 Para el próximo cinturón</div>
     ${e.sig?`
-      <div class="fila"><div class="izq"><div class="n1">${cintaHTML(c,true)} → ${cintaHTML(e.sig,true)} ${esc(e.sig.nombre)}</div></div>
+      <div class="fila"><div class="izq"><div class="n1">${cintaHTML(c,true)} → ${cintaHTML(e.sig,true)} ${esc(nombreGrado(e.sig))}</div></div>
         ${e.listo?'<span class="chip v">LISTO</span>':(e.casi?'<span class="chip a">casi</span>':'')}</div>
       <div class="fila"><span class="gris">Clases</span><span class="mono ${e.faltanClases?'ambar':'verde'}">${e.clases} de ${c.clases}${e.faltanClases?' · faltan '+e.faltanClases:''}</span></div>
       <div class="fila"><span class="gris">Tiempo</span><span class="mono ${e.faltanMeses?'ambar':'verde'}">${e.meses} de ${c.meses} meses${e.faltanMeses?' · falta '+e.faltanMeses:''}</span></div>
@@ -773,7 +840,7 @@ PINTORES.alumno=()=>{
   <div class="card">
     <div class="hd">🥋 Su camino</div>
     ${hist.length?hist.map(x=>{const cc=porId(D.cinturones,x.cinturonId);
-      return `<div class="fila"><div class="izq"><div class="n1">${cintaHTML(cc,true)} ${esc(cc?cc.nombre:'')}</div>
+      return `<div class="fila"><div class="izq"><div class="n1">${cintaHTML(cc,true)} ${esc(nombreGrado(cc))}</div>
         ${x.nota?`<div class="n2">${esc(x.nota)}</div>`:''}</div>
         <span class="mono gris">${fLarga(x.fecha)}</span></div>`;}).join('')
       :'<div class="mini">Todavía no tiene exámenes anotados.</div>'}
@@ -789,58 +856,8 @@ function asistenciaReciente(alumnoId,n){
   const ses=D.asistencia.filter(s=>s.grupoId===a.grupoId).sort((x,y)=>y.fecha.localeCompare(x.fecha)).slice(0,n);
   return {vino:ses.filter(s=>(s.presentes||[]).includes(alumnoId)).length, total:ses.length};
 }
-function editarAlumno(id){
-  const a=id?porId(D.alumnos,id):{id:'',nombre:'',apellido:'',grupoId:(D.grupos[0]||{}).id||'',
-    cinturonId:(D.cinturones[0]||{}).id||'',rayas:0,desde:hoyISO(),cuota:'',nota:'',
-    tutor1n:'',tutor1t:'',tutor2n:'',tutor2t:'',familiaId:'',activo:true,nacim:''};
-  const cints=D.cinturones.slice().sort((x,y)=>x.orden-y.orden);
-  hoja(id?'Modificar alumno':'Agregar alumno',`
-   <div class="dosc">
-     <div class="campo"><label>Nombre</label><input id="al-nom" value="${esc(a.nombre)}"></div>
-     <div class="campo"><label>Apellido</label><input id="al-ape" value="${esc(a.apellido||'')}"></div>
-   </div>
-   <div class="dosc">
-     <div class="campo"><label>Grupo</label><select id="al-grupo">
-       ${D.grupos.map(g=>`<option value="${g.id}"${g.id===a.grupoId?' selected':''}>${esc(g.nombre)} · ${horarioGrupo(g)}</option>`).join('')}
-     </select></div>
-     <div class="campo"><label>Empezó el</label><input type="date" id="al-desde" value="${a.desde||hoyISO()}"></div>
-   </div>
-   <div class="dosc">
-     <div class="campo"><label>Cinturón</label><select id="al-cint">
-       ${cints.map(c=>`<option value="${c.id}"${c.id===a.cinturonId?' selected':''}>${esc(c.nombre)}</option>`).join('')}
-     </select></div>
-     <div class="campo"><label>Rayas</label><input type="number" id="al-rayas" min="0" max="10" value="${a.rayas||0}"></div>
-   </div>
-   <div class="dosc">
-     <div class="campo"><label>Fecha de nacimiento</label><input type="date" id="al-nacim" value="${a.nacim||''}"></div>
-     <div class="campo"><label>Cuota al mes</label><input type="number" step="0.01" id="al-cuota" value="${a.cuota===''||a.cuota===undefined?'':a.cuota}" placeholder="${D.config.cuota}"></div>
-   </div>
-   <div class="mini" style="margin-bottom:10px">Si dejas la cuota en blanco, usa la cuota general de ${money(D.config.cuota)}.</div>
-   <div class="hd">Encargados</div>
-   <div class="dosc">
-     <div class="campo"><label>Nombre</label><input id="al-t1n" value="${esc(a.tutor1n||'')}"></div>
-     <div class="campo"><label>Teléfono</label><input type="tel" id="al-t1t" value="${esc(a.tutor1t||'')}"></div>
-   </div>
-   <div class="dosc">
-     <div class="campo"><label>Segundo</label><input id="al-t2n" value="${esc(a.tutor2n||'')}"></div>
-     <div class="campo"><label>Teléfono</label><input type="tel" id="al-t2t" value="${esc(a.tutor2t||'')}"></div>
-   </div>
-   <div class="campo"><label>Familia (para hermanos)</label><select id="al-fam">
-     <option value="">— ninguna —</option>
-     ${D.familias.map(f=>`<option value="${f.id}"${f.id===a.familiaId?' selected':''}>${esc(f.nombre)}</option>`).join('')}
-   </select></div>
-   <div class="campo"><label>Nota</label><input id="al-nota" value="${esc(a.nota||'')}" placeholder="alergias, permisos, lo que sea"></div>
-   <div class="campo"><label>Foto</label><input type="file" accept="image/*" capture="user" id="al-foto" onchange="fotoBorrador(this)">
-     <div id="al-foto-prev">${a.foto?`<img src="${a.foto}" class="foto-prev">`:''}</div></div>
-   <button class="btn pri" onclick="guardarAlumno('${id||''}',false)">Guardar</button>
-   ${id?'':`<button class="btn" style="margin-top:8px" onclick="guardarAlumno('',true)">Guardar y agregar otro</button>`}`);
-  FOTO_TMP = id ? (a.foto||'') : '';
-}
 let FOTO_TMP='';
-function fotoBorrador(inp){
-  const f=inp.files&&inp.files[0]; if(!f) return;
-  comprimirFoto(f,d=>{ FOTO_TMP=d; const p=$('al-foto-prev'); if(p) p.innerHTML=`<img src="${d}" class="foto-prev">`; });
-}
+
 function comprimirFoto(file,cb){
   const fr=new FileReader();
   fr.onload=e=>{ const img=new Image();
@@ -864,25 +881,446 @@ function tomarFotoAlumno(id){
       log('Le puso foto a '+nombreAlumno(a)); guardar(); toast('Foto guardada'); pintar(); }); };
   inp.click();
 }
+const ESTADOS_US=['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC','PR'];
+const TALLAS_GI=['000','00','0','1','2','3','4','5','6','7','8'];
+const PARENTESCOS=['Madre','Padre','Abuela','Abuelo','Tía','Tío','Hermana','Hermano','Esposa','Esposo','Amiga','Amigo','Vecina','Vecino','Otro'];
+const FRECUENCIAS=[['semanal','Semanal'],['quincenal','Quincenal'],['mensual','Mensual']];
+const VECES_AL_MES={semanal:4,quincenal:2,mensual:1};
+
+/* ---------- edad ---------- */
+function edadDe(nacim){
+  if(!nacim) return null;
+  const [a,m,d]=String(nacim).split('-').map(Number);
+  if(!a) return null;
+  const hoy=new Date(); let e=hoy.getFullYear()-a;
+  const cumpleYa=(hoy.getMonth()+1>m)||((hoy.getMonth()+1===m)&&(hoy.getDate()>=d));
+  if(!cumpleYa) e--;
+  return e;
+}
+function esMenor(a){ const e=edadDe(a&&a.nacim); return e===null? false : e<18; }
+/* cuántos días faltan para su cumpleaños */
+function diasParaCumple(nacim){
+  if(!nacim) return null;
+  const [,m,d]=String(nacim).split('-').map(Number);
+  if(!m||!d) return null;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  let c=new Date(hoy.getFullYear(),m-1,d);
+  if(c<hoy) c=new Date(hoy.getFullYear()+1,m-1,d);
+  return Math.round((c-hoy)/86400000);
+}
+
+/* ---------- nombres ---------- */
+function nombreAlumno(a){
+  if(!a) return '';
+  return [a.nombre,(a.ini?a.ini.replace('.','')+'.':''),a.apellido,a.apellido2].filter(Boolean).join(' ');
+}
+function nombreCorto(a){ return a? [a.nombre,a.apellido].filter(Boolean).join(' ') : ''; }
+function nombrePersona(p){
+  if(!p) return '';
+  return [p.nom,(p.ini?p.ini.replace('.','')+'.':''),p.ape1,p.ape2].filter(Boolean).join(' ');
+}
+function direccionDe(o){
+  if(!o) return '';
+  const l2=[o.ciudad,o.estado].filter(Boolean).join(', ');
+  return [o.calle,[l2,o.zip].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+}
+function personaVacia(){ return {nom:'',ini:'',ape1:'',ape2:'',tel:'',correo:'',parentesco:'',calle:'',ciudad:'',estado:'',zip:'',misma:true}; }
+
+/* ---------- autocompletar: junta lo que ya escribió antes ---------- */
+function sugerencias(campo){
+  const s=new Set();
+  (D.alumnos||[]).forEach(a=>{
+    const gente=[a,a.madre,a.padre,a.emerg].filter(Boolean);
+    gente.forEach(p=>{
+      if(campo==='nombre'){ if(p.nombre)s.add(p.nombre); if(p.nom)s.add(p.nom); }
+      if(campo==='apellido'){ [p.apellido,p.apellido2,p.ape1,p.ape2].forEach(x=>{if(x)s.add(x);}); }
+      if(campo==='calle'&&p.calle)s.add(p.calle);
+      if(campo==='ciudad'&&p.ciudad)s.add(p.ciudad);
+      if(campo==='zip'&&p.zip)s.add(p.zip);
+      if(campo==='tel'){ [p.tel,p.telefono].forEach(x=>{if(x)s.add(x);}); }
+    });
+  });
+  return [...s].filter(Boolean).sort();
+}
+function listaHTML(id,campo){
+  return `<datalist id="${id}">${sugerencias(campo).map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+}
+
+/* ---------- bloque de persona (madre / padre / emergencia) ---------- */
+function bloquePersona(pfx,titulo,p,conParentesco){
+  p=p||personaVacia();
+  return `<div class="card" style="margin-top:9px">
+  <div class="hd">${titulo}</div>
+  <div class="dosc">
+    <div class="campo"><label>Primer nombre</label><input id="${pfx}-nom" list="dl-nom" value="${esc(p.nom||'')}"></div>
+    <div class="campo"><label>Inicial</label><input id="${pfx}-ini" maxlength="2" value="${esc(p.ini||'')}"></div>
+  </div>
+  <div class="dosc">
+    <div class="campo"><label>Apellido paterno</label><input id="${pfx}-ape1" list="dl-ape" value="${esc(p.ape1||'')}"></div>
+    <div class="campo"><label>Apellido materno</label><input id="${pfx}-ape2" list="dl-ape" value="${esc(p.ape2||'')}"></div>
+  </div>
+  ${conParentesco?`<div class="campo"><label>Parentesco</label><input id="${pfx}-par" list="dl-par" value="${esc(p.parentesco||'')}"></div>`:''}
+  <div class="dosc">
+    <div class="campo"><label>Teléfono</label><input type="tel" id="${pfx}-tel" list="dl-tel" value="${esc(p.tel||'')}"></div>
+    <div class="campo"><label>Correo</label><input type="email" id="${pfx}-correo" value="${esc(p.correo||'')}"></div>
+  </div>
+  <label class="check"><input type="checkbox" id="${pfx}-misma" ${p.misma!==false?'checked':''} onchange="copiarDir('${pfx}')">
+    <span>Misma dirección que el alumno</span></label>
+  <div id="${pfx}-dir" style="${p.misma!==false?'display:none':''}">
+    <div class="campo"><label>Dirección</label><input id="${pfx}-calle" list="dl-calle" value="${esc(p.calle||'')}"></div>
+    <div class="tresc">
+      <div class="campo"><label>Ciudad</label><input id="${pfx}-ciudad" list="dl-ciudad" value="${esc(p.ciudad||'')}"></div>
+      <div class="campo"><label>Estado</label><select id="${pfx}-estado">${ESTADOS_US.map(e=>`<option${e===(p.estado||'RI')?' selected':''}>${e}</option>`).join('')}</select></div>
+      <div class="campo"><label>Zip</label><input id="${pfx}-zip" list="dl-zip" value="${esc(p.zip||'')}"></div>
+    </div>
+  </div></div>`;
+}
+function copiarDir(pfx){
+  const c=$(pfx+'-misma'), caja=$(pfx+'-dir');
+  if(!c||!caja) return;
+  caja.style.display = c.checked ? 'none' : 'block';
+  if(c.checked){
+    if($(pfx+'-calle')) $(pfx+'-calle').value=$('al-calle').value;
+    if($(pfx+'-ciudad')) $(pfx+'-ciudad').value=$('al-ciudad').value;
+    if($(pfx+'-estado')) $(pfx+'-estado').value=$('al-estado').value;
+    if($(pfx+'-zip')) $(pfx+'-zip').value=$('al-zip').value;
+  }
+}
+function leerPersona(pfx,conParentesco){
+  if(!$(pfx+'-nom')) return null;
+  const misma=$(pfx+'-misma').checked;
+  const o={nom:($(pfx+'-nom').value||'').trim(), ini:($(pfx+'-ini').value||'').trim(),
+    ape1:($(pfx+'-ape1').value||'').trim(), ape2:($(pfx+'-ape2').value||'').trim(),
+    tel:($(pfx+'-tel').value||'').trim(), correo:($(pfx+'-correo').value||'').trim(),
+    parentesco: conParentesco? ($(pfx+'-par').value||'').trim() : '', misma};
+  if(misma){ o.calle=($('al-calle').value||'').trim(); o.ciudad=($('al-ciudad').value||'').trim();
+    o.estado=$('al-estado').value; o.zip=($('al-zip').value||'').trim(); }
+  else { o.calle=($(pfx+'-calle').value||'').trim(); o.ciudad=($(pfx+'-ciudad').value||'').trim();
+    o.estado=$(pfx+'-estado').value; o.zip=($(pfx+'-zip').value||'').trim(); }
+  return o;
+}
+
+/* ---------- la ficha ---------- */
+function editarAlumno(id){
+  const a=id?porId(D.alumnos,id):{id:'',nombre:'',ini:'',apellido:'',apellido2:'',
+    grupoId:(D.grupos[0]||{}).id||'', cinturonId:(D.cinturones[0]||{}).id||'', rayas:0,
+    desde:hoyISO(), cuota:'', nota:'', familiaId:'', activo:true, estadoAl:'activo', nacim:'',
+    tel:'', correo:'', calle:'', ciudad:'', estado:'RI', zip:'', dias:[],
+    talla:'', frecuencia:'mensual', inscMonto:'', inscUniforme:true, inscFecha:'',
+    beca:{activa:false,desde:mesActual(),meses:1},
+    waiver:{firmado:false,fecha:''}, medico:'', recogen:'', permisoFotos:false,
+    madre:personaVacia(), padre:personaVacia(), emerg:personaVacia()};
+  const cints=D.cinturones.slice().sort((x,y)=>x.orden-y.orden);
+  const menor=esMenor(a), ed=edadDe(a.nacim);
+  const bec=a.beca||{activa:false,desde:mesActual(),meses:1};
+  hoja(id?'Modificar alumno':'Agregar alumno',`
+  ${listaHTML('dl-nom','nombre')}${listaHTML('dl-ape','apellido')}${listaHTML('dl-calle','calle')}
+  ${listaHTML('dl-ciudad','ciudad')}${listaHTML('dl-zip','zip')}${listaHTML('dl-tel','tel')}
+  <datalist id="dl-par">${PARENTESCOS.map(p=>`<option value="${p}">`).join('')}</datalist>
+
+  <div class="card">
+    <div style="display:flex;gap:11px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div class="campo"><label>Fecha de nacimiento</label>
+          <input type="date" id="al-nacim" value="${a.nacim||''}" onchange="cambioEdad()"></div>
+        <div id="al-edad" class="mini">${ed===null?'Pon la fecha para saber la edad.':(ed+' años · '+(menor?'MENOR de edad':'ADULTO'))}</div>
+      </div>
+      <div style="text-align:center;flex:none">
+        <div class="avatar" id="al-foto-prev" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
+        <div style="display:flex;gap:5px;margin-top:6px">
+          <button class="btn chico" style="width:auto;padding:5px 7px" onclick="pedirFoto(true)">📷</button>
+          <button class="btn chico" style="width:auto;padding:5px 7px" onclick="pedirFoto(false)">🖼️</button>
+        </div>
+        <div class="mini" style="font-size:9.5px;margin-top:2px">Tomar · Álbum</div>
+      </div>
+    </div>
+    <div class="dosc">
+      <div class="campo"><label>Primer nombre</label><input id="al-nom" list="dl-nom" value="${esc(a.nombre)}"></div>
+      <div class="campo"><label>Inicial</label><input id="al-ini" maxlength="2" value="${esc(a.ini||'')}"></div>
+    </div>
+    <div class="dosc">
+      <div class="campo"><label>Apellido paterno</label><input id="al-ape" list="dl-ape" value="${esc(a.apellido||'')}"></div>
+      <div class="campo"><label>Apellido materno</label><input id="al-ape2" list="dl-ape" value="${esc(a.apellido2||'')}"></div>
+    </div>
+    <div class="dosc">
+      <div class="campo"><label>Teléfono</label><input type="tel" id="al-tel" list="dl-tel" value="${esc(a.tel||'')}"></div>
+      <div class="campo"><label>Correo</label><input type="email" id="al-correo" value="${esc(a.correo||'')}"></div>
+    </div>
+    <div class="campo"><label>Dirección</label><input id="al-calle" list="dl-calle" value="${esc(a.calle||'')}" placeholder="200 Broad St."></div>
+    <div class="tresc">
+      <div class="campo"><label>Ciudad</label><input id="al-ciudad" list="dl-ciudad" value="${esc(a.ciudad||'')}"></div>
+      <div class="campo"><label>Estado</label><select id="al-estado">${ESTADOS_US.map(e=>`<option${e===(a.estado||'RI')?' selected':''}>${e}</option>`).join('')}</select></div>
+      <div class="campo"><label>Zip</label><input id="al-zip" list="dl-zip" value="${esc(a.zip||'')}"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd">🥋 En el dojo</div>
+    <div class="dosc">
+      <div class="campo"><label>Grupo</label><select id="al-grupo">
+        ${D.grupos.map(g=>`<option value="${g.id}"${g.id===a.grupoId?' selected':''}>${esc(g.nombre)} · ${horarioGrupo(g)}</option>`).join('')}
+      </select></div>
+      <div class="campo"><label>Se inscribió el</label><input type="date" id="al-desde" value="${a.desde||hoyISO()}"></div>
+    </div>
+    <div class="campo"><label>Grado</label><select id="al-cint">
+      ${cints.map(c=>`<option value="${c.id}"${c.id===a.cinturonId?' selected':''}>${esc(nombreGrado(c))}</option>`).join('')}
+    </select></div>
+    <div class="campo"><label>Días que toma clase</label>
+      <div class="diassem">${DIA3.map((d,i)=>`<label class="dia${(a.dias||[]).includes(i)?' on':''}">
+        <input type="checkbox" value="${i}" ${(a.dias||[]).includes(i)?'checked':''}
+          onchange="this.parentNode.classList.toggle('on',this.checked)"><span>${d}</span></label>`).join('')}</div></div>
+    <div class="dosc">
+      <div class="campo"><label>Talla de uniforme</label><select id="al-talla">
+        <option value="">—</option>${TALLAS_GI.map(t=>`<option${t===(a.talla||'')?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="campo"><label>Estado</label><select id="al-estadoal">
+        ${[['activo','Activo'],['pausa','En pausa'],['baja','Se dio de baja']].map(([v,t])=>
+          `<option value="${v}"${v===(a.estadoAl||(a.activo===false?'baja':'activo'))?' selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd">💵 Dinero</div>
+    <div class="dosc">
+      <div class="campo"><label>Inscripción</label><input type="number" step="0.01" id="al-insc" value="${a.inscMonto===''||a.inscMonto===undefined?'':a.inscMonto}" placeholder="0.00"></div>
+      <div class="campo"><label>Pagada el</label><input type="date" id="al-inscf" value="${a.inscFecha||''}"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="al-inscuni" ${a.inscUniforme!==false?'checked':''}><span>La inscripción incluye el uniforme</span></label>
+    <div class="dosc" style="margin-top:8px">
+      <div class="campo"><label>Cada cuánto paga</label><select id="al-frec" onchange="calcCuota()">
+        ${FRECUENCIAS.map(([v,t])=>`<option value="${v}"${v===(a.frecuencia||'mensual')?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="campo"><label>Cuota</label><input type="number" step="0.01" id="al-cuota" value="${a.cuota===''||a.cuota===undefined?'':a.cuota}" placeholder="${D.config.cuota}" oninput="calcCuota()"></div>
+    </div>
+    <div class="campo"><label>Familia (hermanos)</label>
+      <div style="display:flex;gap:6px">
+        <select id="al-fam" style="flex:1" onchange="calcCuota()">
+          <option value="">— ninguna —</option>
+          ${D.familias.map(f=>`<option value="${f.id}"${f.id===a.familiaId?' selected':''}>${esc(f.nombre)}${f.descuento?' (−'+f.descuento+'%)':''}</option>`).join('')}
+        </select>
+        <button class="btn chico" style="width:auto" onclick="crearFamiliaRapido()">➕ Crear</button>
+      </div></div>
+    <label class="check"><input type="checkbox" id="al-beca" ${bec.activa?'checked':''} onchange="calcCuota()"><span>🎓 Tiene beca</span></label>
+    <div class="dosc" id="al-becacaja" style="${bec.activa?'':'display:none'};margin-top:8px">
+      <div class="campo"><label>Desde el mes</label><input type="month" id="al-becadesde" value="${bec.desde||mesActual()}"></div>
+      <div class="campo"><label>Por cuántos meses</label><select id="al-becameses">
+        ${Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}"${m===Number(bec.meses||1)?' selected':''}>${m} ${m===1?'mes':'meses'}</option>`).join('')}</select></div>
+    </div>
+    <div class="calc" id="al-calc"></div>
+  </div>
+
+  <div id="al-gente"></div>
+
+  <div class="card">
+    <div class="hd">🛡️ Seguridad y permisos</div>
+    <label class="check"><input type="checkbox" id="al-waiver" ${(a.waiver||{}).firmado?'checked':''}><span>📄 Firmó el permiso de participación</span></label>
+    <div class="campo" style="margin-top:8px"><label>Fecha en que lo firmó</label><input type="date" id="al-waiverf" value="${(a.waiver||{}).fecha||''}"></div>
+    <div class="campo"><label>🏥 Alergias o condiciones a tener en cuenta</label><input id="al-medico" value="${esc(a.medico||'')}" placeholder="asma, alergia al maní…"></div>
+    <div class="campo"><label>🚸 Quién puede recogerlo</label><input id="al-recogen" value="${esc(a.recogen||'')}" placeholder="nombres, separados por coma"></div>
+    <label class="check"><input type="checkbox" id="al-fotos" ${a.permisoFotos?'checked':''}><span>📸 Da permiso para fotos y redes sociales</span></label>
+  </div>
+
+  <div class="card">
+    <div class="hd">📝 Notas</div>
+    <div class="campo"><textarea id="al-nota" rows="3">${esc(a.nota||'')}</textarea></div>
+  </div>
+
+  <button class="btn pri" onclick="guardarAlumno('${id||''}',false)">Guardar</button>
+  ${id?'':`<button class="btn" style="margin-top:8px" onclick="guardarAlumno('',true)">Guardar y agregar otro</button>`}`);
+  FOTO_TMP = id ? (a.foto||'') : '';
+  ALUMNO_EDIT = a;
+  pintarGente();
+  calcCuota();
+}
+let ALUMNO_EDIT=null;
+function cambioEdad(){
+  const n=$('al-nacim').value, e=edadDe(n);
+  $('al-edad').innerHTML = e===null ? 'Pon la fecha para saber la edad.'
+    : `<b>${e} años</b> · ${e<18?'<span class="ambar">MENOR de edad</span>':'<span class="verde">ADULTO</span>'}`;
+  pintarGente();
+}
+function pintarGente(){
+  const a=ALUMNO_EDIT||{}; const e=edadDe($('al-nacim')?$('al-nacim').value:a.nacim);
+  const menor = e===null ? false : e<18;
+  let h='';
+  if(menor){
+    h+=bloquePersona('ma','👩 Madre',a.madre,false);
+    h+=bloquePersona('pa','👨 Padre',a.padre,false);
+  }
+  h+=bloquePersona('em','🚑 Contacto de emergencia',a.emerg,true);
+  $('al-gente').innerHTML=h;
+}
+function calcCuota(){
+  const bec=$('al-beca'), caja=$('al-becacaja');
+  if(caja) caja.style.display = bec&&bec.checked ? 'grid' : 'none';
+  const frec=$('al-frec')?$('al-frec').value:'mensual';
+  const base = $('al-cuota').value===''? n2(D.config.cuota) : n2($('al-cuota').value);
+  const f=porId(D.familias,$('al-fam').value);
+  const desc = f&&Number(f.descuento)>0 ? n2(base*Number(f.descuento)/100) : 0;
+  const neto = n2(base-desc);
+  const veces = VECES_AL_MES[frec]||1;
+  const becado = bec&&bec.checked;
+  const etq = {semanal:'cada semana',quincenal:'cada quincena',mensual:'cada mes'}[frec];
+  $('al-calc').innerHTML = `
+    <div class="fila"><span class="gris">Cuota ${etq}</span><span class="mono">${money(base)}</span></div>
+    ${desc?`<div class="fila"><span class="gris">Descuento de familia (−${f.descuento}%)</span><span class="mono ambar">−${money(desc)}</span></div>`:''}
+    <div class="fila"><span><b>Le toca pagar ${etq}</b></span><span class="mono ${becado?'gris':'verde'}"><b>${becado?'—':money(neto)}</b></span></div>
+    <div class="fila"><span class="gris">Al mes serían</span><span class="mono">${becado?'becado, no paga':money(n2(neto*veces))}</span></div>`;
+}
+function crearFamiliaRapido(){
+  const n=prompt('Nombre de la familia (ej: Familia Núñez)');
+  if(!n||!n.trim()) return;
+  const d=prompt('¿Qué descuento en % le das a esta familia? (0 si ninguno)','10');
+  const f={id:uid(),nombre:n.trim(),descuento:Number(d)||0};
+  D.familias.push(f); log('Creó la familia '+f.nombre); guardar();
+  const sel=$('al-fam');
+  sel.innerHTML=`<option value="">— ninguna —</option>`+
+    D.familias.map(x=>`<option value="${x.id}"${x.id===f.id?' selected':''}>${esc(x.nombre)}${x.descuento?' (−'+x.descuento+'%)':''}</option>`).join('');
+  toast('Familia creada'); calcCuota();
+}
+function pedirFoto(conCamara){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  if(conCamara) inp.capture='environment';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+    comprimirFoto(f,d=>{ FOTO_TMP=d; const p=$('al-foto-prev');
+      if(p){ p.style.backgroundImage=`url(${d})`; p.textContent=''; } toast('Foto lista'); }); };
+  inp.click();
+}
 function guardarAlumno(id,otroMas){
   const n=($('al-nom').value||'').trim();
-  if(!n) return toast('Escribe al menos el nombre.');
-  const o={nombre:n, apellido:($('al-ape').value||'').trim(), grupoId:$('al-grupo').value,
-    desde:$('al-desde').value||hoyISO(), cinturonId:$('al-cint').value,
-    rayas:Number($('al-rayas').value)||0, nacim:$('al-nacim').value||'',
+  if(!n) return toast('Escribe al menos el primer nombre.');
+  const estadoAl=$('al-estadoal').value;
+  const dias=[...document.querySelectorAll('.diassem input:checked')].map(x=>Number(x.value));
+  const o={nombre:n, ini:($('al-ini').value||'').trim(),
+    apellido:($('al-ape').value||'').trim(), apellido2:($('al-ape2').value||'').trim(),
+    nacim:$('al-nacim').value||'', tel:($('al-tel').value||'').trim(),
+    correo:($('al-correo').value||'').trim(),
+    calle:($('al-calle').value||'').trim(), ciudad:($('al-ciudad').value||'').trim(),
+    estado:$('al-estado').value, zip:($('al-zip').value||'').trim(),
+    grupoId:$('al-grupo').value, desde:$('al-desde').value||hoyISO(),
+    cinturonId:$('al-cint').value, dias, talla:$('al-talla').value,
+    estadoAl, activo: estadoAl!=='baja',
+    inscMonto: $('al-insc').value===''? '' : n2($('al-insc').value),
+    inscFecha: $('al-inscf').value||'', inscUniforme: $('al-inscuni').checked,
+    frecuencia: $('al-frec').value,
     cuota: $('al-cuota').value===''? '' : n2($('al-cuota').value),
-    tutor1n:($('al-t1n').value||'').trim(), tutor1t:($('al-t1t').value||'').trim(),
-    tutor2n:($('al-t2n').value||'').trim(), tutor2t:($('al-t2t').value||'').trim(),
-    familiaId:$('al-fam').value, nota:($('al-nota').value||'').trim()};
+    familiaId:$('al-fam').value,
+    beca:{activa:$('al-beca').checked, desde:$('al-becadesde').value||mesActual(),
+          meses:Number($('al-becameses').value)||1},
+    waiver:{firmado:$('al-waiver').checked, fecha:$('al-waiverf').value||''},
+    medico:($('al-medico').value||'').trim(), recogen:($('al-recogen').value||'').trim(),
+    permisoFotos:$('al-fotos').checked,
+    nota:($('al-nota').value||'').trim()};
+  const menor = esMenor({nacim:o.nacim});
+  o.madre = menor ? (leerPersona('ma',false)||personaVacia()) : ((porId(D.alumnos,id)||{}).madre||personaVacia());
+  o.padre = menor ? (leerPersona('pa',false)||personaVacia()) : ((porId(D.alumnos,id)||{}).padre||personaVacia());
+  o.emerg = leerPersona('em',true)||personaVacia();
   if(FOTO_TMP) o.foto=FOTO_TMP;
   if(id){ Object.assign(porId(D.alumnos,id),o); log('Modificó a '+n); }
-  else { D.alumnos.push({id:uid(),activo:true,historial:[],tecnicas:[],creado:hoyISO(),...o});
+  else { D.alumnos.push({id:uid(),historial:[],tecnicas:[],rayas:0,creado:hoyISO(),...o});
     log('Agregó al alumno '+n); }
   if(!guardar()) return;
-  toast('Guardado'); FOTO_TMP='';
+  toast('Guardado'); FOTO_TMP=''; ALUMNO_EDIT=null;
   if(otroMas){ cerrarHoja(); editarAlumno(); }
   else { cerrarHoja(); if(id){ ALUMNO_ACTUAL=id; ir('alumno'); } else ir('alumnos'); }
 }
+
+function filaPersona(p,titulo){
+  if(!p||!p.nom) return '';
+  const dir=direccionDe(p);
+  return `<div class="fila"><div class="izq">
+    <div class="n1">${esc(nombrePersona(p))}${p.parentesco?` <span class="chip">${esc(p.parentesco)}</span>`:''}</div>
+    <div class="n2">${esc(titulo)}${p.tel?' · '+esc(p.tel):''}</div>
+    ${dir?`<div class="mini">${esc(dir)}</div>`:''}</div>
+    ${p.tel?`<a class="btn chico" style="width:auto" href="tel:${esc(p.tel)}">📞</a>`:''}</div>`;
+}
+function tarjetaContactos(a){
+  const menor=esMenor(a);
+  const hay = (menor&&((a.madre&&a.madre.nom)||(a.padre&&a.padre.nom))) || (a.emerg&&a.emerg.nom);
+  if(!hay) return '';
+  return `<div class="card"><div class="hd">📞 Contactos</div>
+    ${menor?filaPersona(a.madre,'Madre'):''}
+    ${menor?filaPersona(a.padre,'Padre'):''}
+    ${filaPersona(a.emerg,'Emergencia')}</div>`;
+}
+function tarjetaDatos(a){
+  const ed=edadDe(a.nacim), dir=direccionDe(a);
+  const fam=porId(D.familias,a.familiaId);
+  const dias=(a.dias||[]).map(i=>DIA3[i]).join(' · ');
+  const w=a.waiver||{};
+  const filas=[
+    ['Edad', ed===null?'':(ed+' años · '+(ed<18?'menor':'adulto'))],
+    ['Nacimiento', a.nacim?fLarga(a.nacim):''],
+    ['Teléfono', a.tel?`<a href="tel:${esc(a.tel)}">${esc(a.tel)}</a>`:''],
+    ['Correo', a.correo?esc(a.correo):''],
+    ['Dirección', dir?esc(dir):''],
+    ['Días de clase', dias],
+    ['Talla de uniforme', a.talla?esc(a.talla):''],
+    ['Familia', fam?esc(fam.nombre)+(fam.descuento?` <span class="chip">−${fam.descuento}%</span>`:''):''],
+  ].filter(x=>x[1]);
+  const dinero=[
+    ['Paga', money(cuotaPorVez(a))+' '+etiquetaFrec(a)],
+    ['Al mes', becadoEn(a,mesActual())?'🎓 becado':money(cuotaDe(a,mesActual()))],
+    ['Inscripción', a.inscMonto!==''&&a.inscMonto!==undefined?money(a.inscMonto)+(a.inscUniforme!==false?' · incluye uniforme':' · sin uniforme')+(a.inscFecha?' · '+fLarga(a.inscFecha):''):''],
+  ].filter(x=>x[1]);
+  const perm=[];
+  if(w.firmado) perm.push(`<span class="chip v">📄 permiso firmado${w.fecha?' '+fCorta(w.fecha):''}</span>`);
+  else perm.push(`<span class="chip r">📄 falta el permiso</span>`);
+  if(a.permisoFotos) perm.push(`<span class="chip v">📸 fotos OK</span>`);
+  else perm.push(`<span class="chip">📸 sin permiso de fotos</span>`);
+  if(a.estadoAl==='pausa') perm.push(`<span class="chip a">⏸️ en pausa</span>`);
+  const bec=a.beca||{};
+  if(bec.activa) perm.push(`<span class="chip a">🎓 beca hasta ${esc(mesBonito(ultimoMesBeca(a)))}</span>`);
+  return `<div class="card"><div class="hd">🪪 Sus datos</div>
+    ${filas.map(([k,v])=>`<div class="fila"><span class="gris">${k}</span><span>${v}</span></div>`).join('')}
+    <div class="hd" style="margin-top:10px">💵 Cobro</div>
+    ${dinero.map(([k,v])=>`<div class="fila"><span class="gris">${k}</span><span class="mono">${v}</span></div>`).join('')}
+    ${a.medico?`<div class="nota al" style="margin-top:9px">🏥 ${esc(a.medico)}</div>`:''}
+    ${a.recogen?`<div class="fila"><span class="gris">🚸 Lo puede recoger</span><span>${esc(a.recogen)}</span></div>`:''}
+    <div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:5px">${perm.join('')}</div>
+  </div>`;
+}
+
+/* ---------- AVISOS DE HOY ---------- */
+function avisosDeHoy(){
+  const hoy=hoyISO(), mk=mesActual(), out=[];
+  alumnosActivos().forEach(a=>{
+    const d=diasParaCumple(a.nacim);
+    if(d!==null && d<=7){
+      const ed=edadDe(a.nacim);
+      out.push({tipo:'cump', a, orden:d,
+        txt:`🎂 ${nombreCorto(a)} cumple ${ed===null?'':(ed+1)+' años'} ${d===0?'HOY':(d===1?'mañana':'en '+d+' días')}`});
+    }
+  });
+  const deben=deudoresDelMes(mk);
+  const vence=mk+'-'+String(D.config.diaVence||5).padStart(2,'0');
+  deben.forEach(a=>{
+    const dias=diasEntre(vence,hoy);              // + atrasado, − todavía no vence
+    if(dias < -4) return;                          // falta mucho, no molesta
+    const cola = dias>0 ? ' · '+dias+' días de atraso'
+               : (dias===0 ? ' · VENCE HOY' : ' · vence en '+(-dias)+' días');
+    out.push({tipo:'deu', a, orden:100-Math.min(99,dias),
+      txt:`💵 ${nombreCorto(a)} debe ${money(debeDelMes(a,mk))}${cola}`});
+  });
+  alumnosActivos().forEach(a=>{
+    if(becadoEn(a,mk) && ultimoMesBeca(a)===mk)
+      out.push({tipo:'bec', a, orden:50, txt:`🎓 A ${nombreCorto(a)} se le acaba la beca este mes`});
+  });
+  alumnosActivos().forEach(a=>{
+    if(!(a.waiver&&a.waiver.firmado) && diasEntre(a.desde||hoy,hoy)>14)
+      out.push({tipo:'bec', a, orden:60, txt:`📄 ${nombreCorto(a)} todavía no ha firmado el permiso`});
+  });
+  return out.sort((x,y)=>x.orden-y.orden);
+}
+function avisosHTML(){
+  const av=avisosDeHoy();
+  if(!av.length) return '';
+  const ver=av.slice(0,6);
+  return `<div class="card"><div class="hd">🔔 Avisos de hoy (${av.length})</div>
+    ${ver.map(x=>`<button class="aviso ${x.tipo}" style="width:100%;text-align:left"
+      onclick="abrirAlumno('${x.a.id}')">${esc(x.txt)}</button>`).join('')}
+    ${av.length>6?`<div class="mini">…y ${av.length-6} más.</div>`:''}</div>`;
+}
+
 function archivarAlumno(id){
   const a=porId(D.alumnos,id); a.activo=a.activo===false;
   log((a.activo?'Reactivó a ':'Marcó que se fue ')+nombreAlumno(a));
@@ -917,11 +1355,42 @@ function marcarTecnica(alumnoId,tecId){
   guardar(); verTecnicas(alumnoId);
 }
 /* =========================== CUOTAS =========================== */
-function cuotaDe(a){
+/* lo que le toca pagar CADA VEZ (según su frecuencia) */
+function cuotaPorVez(a){
   let base = (a.cuota===''||a.cuota===undefined||a.cuota===null) ? n2(D.config.cuota) : n2(a.cuota);
   const f=porId(D.familias,a.familiaId);
   if(f && Number(f.descuento)>0) base = n2(base*(1-Number(f.descuento)/100));
   return base;
+}
+/* a quién se le avisa: si es menor, a la madre o al padre; si no, a él */
+function telDeAviso(a){
+  if(!a) return '';
+  if(esMenor(a)) return (a.madre&&a.madre.tel)||(a.padre&&a.padre.tel)||(a.emerg&&a.emerg.tel)||a.tel||'';
+  return a.tel||(a.emerg&&a.emerg.tel)||'';
+}
+function vecesAlMes(a){ return VECES_AL_MES[a&&a.frecuencia||'mensual']||1; }
+function etiquetaFrec(a){ return {semanal:'cada semana',quincenal:'cada quincena',mensual:'cada mes'}[a&&a.frecuencia||'mensual']; }
+/* ¿está becado ese mes? */
+function becadoEn(a,mk){
+  const b=a&&a.beca;
+  if(!b||!b.activa||!b.desde) return false;
+  const [a1,m1]=b.desde.split('-').map(Number);
+  const [a2,m2]=String(mk).split('-').map(Number);
+  const dif=(a2-a1)*12+(m2-m1);
+  return dif>=0 && dif < (Number(b.meses)||1);
+}
+function ultimoMesBeca(a){
+  const b=a&&a.beca; if(!b||!b.activa||!b.desde) return '';
+  const [a1,m1]=b.desde.split('-').map(Number);
+  const tot=(m1-1)+(Number(b.meses)||1)-1;
+  return (a1+Math.floor(tot/12))+'-'+String((tot%12)+1).padStart(2,'0');
+}
+/* lo que le toca en TODO el mes */
+function cuotaDe(a,mk){
+  if(a.estadoAl==='pausa') return 0;
+  if(mk && becadoEn(a,mk)) return 0;
+  if(!mk && becadoEn(a,mesActual())) return 0;
+  return n2(cuotaPorVez(a)*vecesAlMes(a));
 }
 function pagadoDelMes(alumnoId,mk){
   return n2(D.pagos.filter(p=>p.alumnoId===alumnoId && p.mes===mk).reduce((s,p)=>s+n2(p.monto),0));
@@ -929,14 +1398,14 @@ function pagadoDelMes(alumnoId,mk){
 function debeDelMes(a,mk){
   if(a.activo===false) return 0;
   if(a.desde && mesClave(a.desde) > mk) return 0;
-  return n2(Math.max(0, cuotaDe(a)-pagadoDelMes(a.id,mk)));
+  return n2(Math.max(0, cuotaDe(a,mk)-pagadoDelMes(a.id,mk)));
 }
 function deudoresDelMes(mk){
   return alumnosActivos().filter(a=>debeDelMes(a,mk)>0)
     .sort((x,y)=>debeDelMes(y,mk)-debeDelMes(x,mk));
 }
 function esperadoDelMes(mk){
-  return n2(alumnosActivos().filter(a=>!(a.desde&&mesClave(a.desde)>mk)).reduce((s,a)=>s+cuotaDe(a),0));
+  return n2(alumnosActivos().filter(a=>!(a.desde&&mesClave(a.desde)>mk)).reduce((s,a)=>s+cuotaDe(a,mk),0));
 }
 function cobradoDelMes(mk){ return n2(D.pagos.filter(p=>p.mes===mk).reduce((s,p)=>s+n2(p.monto),0)); }
 
@@ -973,7 +1442,7 @@ PINTORES.cuotas=()=>{
         <div class="n2">${money(d)}${mk===mesActual()?(dias>0?' · '+dias+' días de atraso':(dias===0?' · vence hoy':' · vence el '+(D.config.diaVence||5))):''}</div></div>
         <div style="text-align:right">
           <button class="btn chico" onclick="registrarPago('${a.id}')">Pagó</button>
-          ${(a.tutor1t||a.tutor2t)?`<a class="btn chico" style="margin-top:4px;display:block" href="sms:${esc(a.tutor1t||a.tutor2t)}">📲</a>`:''}
+          ${telDeAviso(a)?`<a class="btn chico" style="margin-top:4px;display:block" href="sms:${esc(telDeAviso(a))}">📲</a>`:''}
         </div></div>`;}).join('')
       :'<div class="nota ok">✅ Todos al día este mes.</div>'}
   </div>
@@ -1018,14 +1487,14 @@ function registrarPago(alumnoId){
      <div class="campo"><label>Fecha</label><input type="date" id="pg-fecha" value="${hoyISO()}"></div>
    </div>
    <div class="dosc">
-     <div class="campo"><label>Monto</label><input type="number" step="0.01" id="pg-monto" value="${falta>0?falta:cuotaDe(a)}"></div>
+     <div class="campo"><label>Monto</label><input type="number" step="0.01" id="pg-monto" value="${falta>0?falta:cuotaPorVez(a)}"></div>
      <div class="campo"><label>Cómo pagó</label><select id="pg-como">
        ${['Efectivo','Cheque','Zelle','Tarjeta','Transferencia','Otro'].map(x=>`<option>${x}</option>`).join('')}
      </select></div>
    </div>
    <div class="campo"><label>Nota</label><input id="pg-nota" placeholder="opcional"></div>
    <button class="btn pri" onclick="guardarPago('${alumnoId}')">Guardar el pago</button>
-   <div class="mini" style="margin-top:9px">Su cuota es ${money(cuotaDe(a))}${falta>0?' · debe '+money(falta):' · ya está al día'}.</div>`);
+   <div class="mini" style="margin-top:9px">Paga ${money(cuotaPorVez(a))} ${esc(etiquetaFrec(a))} · al mes ${money(cuotaDe(a,mk))}${falta>0?' · debe '+money(falta):' · ya está al día'}${becadoEn(a,mk)?' · 🎓 BECADO este mes':''}.</div>`);
 }
 function guardarPago(alumnoId){
   const m=n2($('pg-monto').value);
@@ -1066,28 +1535,30 @@ PINTORES.cinturones=()=>{
     ${cs.map(c=>{
       const n=alumnosActivos().filter(a=>a.cinturonId===c.id).length;
       return `<button class="fila" style="width:100%;text-align:left" onclick="editarCinturon('${c.id}')">
-        <div class="izq"><div class="n1">${cintaHTML(c)} ${esc(c.nombre)}${n?`<span class="chip">${n}</span>`:''}</div>
-        <div class="n2">${c.clases} clases · ${c.meses} mes${c.meses===1?'':'es'} · ${(c.tecnicas||[]).length} técnicas · ${c.rayas} rayas</div></div>
+        <div class="izq"><div class="n1">${cintaHTML(c,'gr')} ${esc(c.nombre)}${n?`<span class="chip">${n}</span>`:''}</div>
+        <div class="n2">${c.kyu?esc(c.kyu)+' · ':''}${c.clases} clases · ${c.meses} mes${c.meses===1?'':'es'} · ${(c.tecnicas||[]).length} técnicas</div></div>
         <span class="fl gris">✏️</span></button>`;}).join('')}
   </div>
   <button class="btn pri" onclick="editarCinturon()">➕ Agregar cinturón</button>`;
 };
 function editarCinturon(id){
-  const c=id?porId(D.cinturones,id):{id:'',nombre:'',color:'#cccccc',
-    orden:D.cinturones.length,clases:20,meses:3,rayas:3,tecnicas:[]};
+  const c=id?porId(D.cinturones,id):{id:'',nombre:'',base:'blanco',franja:'',kyu:'',color:COLOR_CINT.blanco,
+    orden:D.cinturones.length,clases:20,meses:3,rayas:0,tecnicas:[]};
+  const opColor=(sel,vacio)=>(vacio?`<option value=""${sel?'':' selected'}>— sin franja —</option>`:'')
+    +Object.keys(COLOR_CINT).map(k=>`<option value="${k}"${k===sel?' selected':''}>${k.charAt(0).toUpperCase()+k.slice(1)}</option>`).join('');
   hoja(id?'Cinturón '+c.nombre:'Agregar cinturón',`
+   <div class="campo"><label>Nombre</label><input id="ci-nom" value="${esc(c.nombre)}"></div>
    <div class="dosc">
-     <div class="campo"><label>Nombre</label><input id="ci-nom" value="${esc(c.nombre)}"></div>
-     <div class="campo"><label>Color</label><input type="color" id="ci-color" value="${esc(c.color)}" style="height:42px;padding:3px"></div>
+     <div class="campo"><label>Color del cinturón</label><select id="ci-base" onchange="previaCinta()">${opColor(c.base||'blanco',false)}</select></div>
+     <div class="campo"><label>Franja del medio</label><select id="ci-franja" onchange="previaCinta()">${opColor(c.franja||'',true)}</select></div>
    </div>
+   <div class="campo"><label>Así se va a ver</label><div id="ci-previa" style="padding:6px 0">${cintaHTML(c,'gr')}</div></div>
+   <div class="campo"><label>Kyu o Dan (déjalo vacío si no lleva)</label><input id="ci-kyu" value="${esc(c.kyu||'')}" placeholder="ej: 8vo kyu"></div>
    <div class="dosc">
      <div class="campo"><label>Clases que necesita</label><input type="number" id="ci-clases" value="${c.clases}"></div>
      <div class="campo"><label>Meses que necesita</label><input type="number" id="ci-meses" value="${c.meses}"></div>
    </div>
-   <div class="dosc">
-     <div class="campo"><label>Rayas de este cinturón</label><input type="number" id="ci-rayas" min="0" max="10" value="${c.rayas}"></div>
-     <div class="campo"><label>Orden</label><input type="number" id="ci-orden" value="${c.orden}"></div>
-   </div>
+   <div class="campo"><label>Orden en la escalera</label><input type="number" id="ci-orden" value="${c.orden}"></div>
    ${id?`<div class="hd" style="margin-top:12px">Técnicas (${(c.tecnicas||[]).length})</div>
      <div id="ci-tecs">${(c.tecnicas||[]).map(t=>`<div class="fila"><span>${esc(t.nombre)}</span>
        <button class="btn chico peligro" onclick="borrarTecnica('${c.id}','${t.id}')">🗑️</button></div>`).join('')}</div>
@@ -1097,10 +1568,16 @@ function editarCinturon(id){
    <button class="btn pri" style="margin-top:10px" onclick="guardarCinturon('${id||''}')">Guardar</button>
    ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarCinturon('${id}')">🗑️ Borrar cinturón</button>`:''}`);
 }
+function previaCinta(){
+  const p=$('ci-previa'); if(!p) return;
+  p.innerHTML=cintaHTML({base:$('ci-base').value,franja:$('ci-franja').value,
+    color:COLOR_CINT[$('ci-base').value]},'gr');
+}
 function guardarCinturon(id){
   const n=($('ci-nom').value||'').trim(); if(!n) return toast('Ponle un nombre.');
-  const o={nombre:n,color:$('ci-color').value,clases:Number($('ci-clases').value)||0,
-    meses:Number($('ci-meses').value)||0,rayas:Number($('ci-rayas').value)||0,
+  const base=$('ci-base').value, franja=$('ci-franja').value;
+  const o={nombre:n,base,franja,color:COLOR_CINT[base]||'#888',kyu:($('ci-kyu').value||'').trim(),
+    clases:Number($('ci-clases').value)||0,meses:Number($('ci-meses').value)||0,rayas:0,
     orden:Number($('ci-orden').value)||0};
   if(id){ Object.assign(porId(D.cinturones,id),o); log('Modificó el cinturón '+n); }
   else { D.cinturones.push({id:uid(),tecnicas:[],...o}); log('Agregó el cinturón '+n); }
@@ -1285,7 +1762,7 @@ function promoverAlumno(id){
   const a=porId(D.alumnos,id), c=cintDe(a), sig=siguienteCint(c);
   if(!sig) return toast('Ya está en el último cinturón.');
   hoja('Promover a '+nombreAlumno(a),`
-   <div class="nota">${cintaHTML(c,true)} ${esc(c.nombre)} → ${cintaHTML(sig,true)} <b>${esc(sig.nombre)}</b></div>
+   <div class="nota">${cintaHTML(c,true)} ${esc(c.nombre)} → ${cintaHTML(sig,true)} <b>${esc(nombreGrado(sig))}</b></div>
    <div class="campo"><label>Fecha del examen</label><input type="date" id="pr-fecha" value="${hoyISO()}"></div>
    <div class="campo"><label>Nota</label><input id="pr-nota" placeholder="opcional"></div>
    <button class="btn pri" onclick="confirmarPromocion('${id}')">Promover</button>`);
@@ -1443,8 +1920,8 @@ PINTORES.reportes=()=>{
     ${desp.length?desp.map(x=>`<button class="fila" style="width:100%;text-align:left" onclick="abrirAlumno('${x.a.id}')">
       <div class="avatar sm" style="${x.a.foto?`background-image:url(${x.a.foto})`:''}">${x.a.foto?'':'👤'}</div>
       <div class="izq"><div class="n1">${esc(nombreAlumno(x.a))}</div>
-      <div class="n2">${x.nunca?'nunca ha venido':'no viene hace '+x.dias+' días'}${(x.a.tutor1t)?' · '+esc(x.a.tutor1t):''}</div></div>
-      ${x.a.tutor1t?`<a class="btn chico" href="tel:${esc(x.a.tutor1t)}" onclick="event.stopPropagation()">📞</a>`:'<span class="fl gris">›</span>'}
+      <div class="n2">${x.nunca?'nunca ha venido':'no viene hace '+x.dias+' días'}${telDeAviso(x.a)?' · '+esc(telDeAviso(x.a)):''}</div></div>
+      ${telDeAviso(x.a)?`<a class="btn chico" href="tel:${esc(telDeAviso(x.a))}" onclick="event.stopPropagation()">📞</a>`:'<span class="fl gris">›</span>'}
       </button>`).join('')
       :'<div class="nota ok">✅ Todos vienen seguido.</div>'}
   </div>
@@ -1611,7 +2088,7 @@ PINTORES.bitacora=()=>{
 const MANUAL=[
  {t:'▶️ Para empezar', c:[
    ['1 · Revisa tus grupos','Menú ☰ → Grupos y horarios. Vienen puestos el Grupo 1 (6:00–7:00 PM) y el Grupo 2 (7:00–8:00 PM). Cámbiales el nombre y marca los días que entrenan.'],
-   ['2 · Revisa los cinturones','Menú ☰ → Cinturones y técnicas. Vienen 8 cinturones de ejemplo. Cambia los nombres, los colores, cuántas clases y cuántos meses hace falta para cada uno, y agrégale sus técnicas.'],
+   ['2 · Revisa los cinturones','Menú ☰ → Cinturones y técnicas. Viene la escalera completa del dojo: 22 grados, del cinturón blanco hasta 7mo Dan, con la franja del medio dibujada. Puedes cambiarle a cada uno el color, la franja, el kyu, cuántas clases y cuántos meses hacen falta, y sus técnicas.'],
    ['3 · Agrega tus alumnos','Botón ALUMNOS → ➕ Agregar alumno. Con "Guardar y agregar otro" los metes todos seguidos sin salirte.'],
    ['4 · Ponles foto','Desde la ficha del alumno, botón 📷 Foto. Vale la pena: pasar lista con caras es mucho más rápido que leer nombres.']
  ]},
