@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260803e-DOJO-V3.0">
+<meta name="app-version" content="20260803f-DOJO-V3.1">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -351,6 +351,7 @@ body{background:#000}
   <div class="vista" id="v-familias"></div>
   <div class="vista" id="v-backup"></div>
   <div class="vista" id="v-documentos"></div>
+  <div class="vista" id="v-pensum"></div>
   <div class="vista" id="v-imprimir"></div>
   <div class="vista" id="v-manual"></div>
   <div class="vista" id="v-bitacora"></div>
@@ -375,7 +376,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260803e-DOJO-V3.0';
+const VERSION_APP='20260803f-DOJO-V3.1';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -449,6 +450,59 @@ function cinturonesDeFabrica(){
     tecnicas:(TECNICAS_FABRICA[c[0]]||[]).map(t=>({id:uid(),nombre:t}))}));
 }
 /* pasa los datos viejos (8 cinturones) a la escalera nueva, sin perder alumnos */
+/* pone el pénsum en los datos viejos y amarra los escalones a su grado */
+function migrarPensum(){
+  if(!D) return false;
+  let cambio=false;
+  if(!D.pensum || !D.pensum.length){ D.pensum=JSON.parse(JSON.stringify(PENSUM_FABRICA)); cambio=true; }
+  /* a qué grado pertenece cada escalón, por nombre */
+  const mapa={'Blanco · raya amarilla':'9no kyu','Cinturón amarillo':'8vo kyu',
+    'Cinturón naranja':'7mo kyu','Cinturón verde':'6to kyu','Cinturón azul':'5to kyu',
+    'Cinturón morado':'4to kyu','Cinturón marrón · 3er kyu':'3er kyu',
+    'Cinturón marrón · 2do kyu':'2do kyu','Cinturón marrón · 1er kyu':'1er kyu',
+    'Cinturón negro · Shodan':'Shodan'};
+  /* los escalones de raya toman la PRIMERA MITAD de las técnicas del grado que viene */
+  const medios={'Amarillo · raya naranja':'7mo kyu','Naranja · raya verde':'6to kyu',
+    'Verde · raya azul':'5to kyu','Azul · raya morada':'4to kyu','Morado · raya marrón':'3er kyu'};
+  (D.cinturones||[]).forEach(c=>{
+    if(c.kyuId!==undefined) return;
+    cambio=true;
+    if(mapa[c.nombre]){
+      c.kyuId=mapa[c.nombre]; c.reqs=[];
+      const g=D.pensum.find(x=>x.kyu===c.kyuId);
+      if(g){ c.clases=g.sesiones||c.clases;
+        /* al escalón de color le toca TODO su grado menos lo que se adelantó en el medio */
+        c.reqs=g.requisitos.map(r=>r.id); }
+    } else if(medios[c.nombre]){
+      c.kyuId=medios[c.nombre];
+      const g=D.pensum.find(x=>x.kyu===c.kyuId);
+      if(g){ const tec=g.requisitos.filter(r=>r.tipo==='tecnica');
+        c.reqs=tec.slice(0, Math.ceil(tec.length/2)).map(r=>r.id); }
+    } else { c.kyuId=''; c.reqs=[]; }
+  });
+  /* al escalón de color se le quita lo que ya pidió el medio anterior */
+  const orden=(D.cinturones||[]).slice().sort((a,b)=>a.orden-b.orden);
+  orden.forEach((c,i)=>{
+    if(!medios[c.nombre]) return;
+    const sig=orden[i+1];
+    if(sig && sig.kyuId===c.kyuId && sig.reqs){
+      sig.reqs=sig.reqs.filter(id=>!(c.reqs||[]).includes(id));
+    }
+  });
+  /* las técnicas de fábrica eran de otro estilo: se quitan.
+     Las que el maestro haya agregado a mano SE RESPETAN. */
+  const deFabrica=new Set(); Object.values(TECNICAS_FABRICA).forEach(l=>l.forEach(t=>deFabrica.add(t)));
+  (D.cinturones||[]).forEach(c=>{
+    const antes=(c.tecnicas||[]).length;
+    c.tecnicas=(c.tecnicas||[]).filter(t=>!deFabrica.has(t.nombre));
+    if(c.tecnicas.length!==antes) cambio=true;
+  });
+  const vivas=new Set(); (D.cinturones||[]).forEach(c=>(c.tecnicas||[]).forEach(t=>vivas.add(t.id)));
+  (D.alumnos||[]).forEach(a=>{ a.tecnicas=(a.tecnicas||[]).filter(x=>vivas.has(x)); });
+  if(cambio) log('Cargó el pénsum de Goju Ryu y amarró los escalones a sus grados');
+  return cambio;
+}
+
 function migrarCinturones(){
   if(!D || !D.cinturones) return false;
   if(D.cinturones.some(c=>c.base)) return false;          // ya estaba migrado
@@ -484,6 +538,7 @@ function datosNuevos(){
       {id:uid(),nombre:'Grupo 1',desde:'18:00',hasta:'19:00',dias:[2,4],activo:true},
       {id:uid(),nombre:'Grupo 2',desde:'19:00',hasta:'20:00',dias:[2,4],activo:true}
     ],
+    pensum:JSON.parse(JSON.stringify(PENSUM_FABRICA)),
     cinturones:cints, alumnos:[], familias:[], asistencia:[], pagos:[], examenes:[],
     bitacora:[],
     config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$', sonido:true, parentescos:[]}
@@ -547,6 +602,7 @@ async function entrar(){
 }
 function abrirApp(){
   if(migrarCinturones()) guardar();
+  if(migrarPensum()) guardar();
   iniciarNavegacion();
   setTimeout(avisarSiSeActualizo,700);
   setTimeout(()=>buscarVersionNueva(true),4000);
@@ -678,8 +734,9 @@ function elegibilidad(a){
   const d0=desdeCinturon(a), hoy=hoyISO();
   const clases=clasesDesde(a.id,d0);
   const meses=mesesEntre(d0,hoy);
-  const tot=(c&&c.tecnicas||[]).length;
-  const hechas=(c&&c.tecnicas||[]).filter(t=>(a.tecnicas||[]).includes(t.id)).length;
+  const reqs=(sig?requisitosDeCinturon(sig):[]);
+  const tot=reqs.length;
+  const hechas=reqs.filter(r=>(a.tecnicas||[]).includes(r.id)).length;
   const faltanClases=Math.max(0,(c&&c.clases||0)-clases);
   const faltanMeses=Math.max(0,(c&&c.meses||0)-meses);
   const faltanTec=Math.max(0,tot-hechas);
@@ -707,7 +764,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 function menu(){
   const items=[
     ['🎓','Listos para examen','elegibles'],['📋','Exámenes','examenes'],
-    ['🥋','Cinturones y técnicas','cinturones'],['🕕','Grupos y horarios','grupos'],
+    ['🥋','Cinturones y grados','cinturones'],['📚','Pénsum de grados','pensum'],['🕕','Grupos y horarios','grupos'],
     ['👨‍👩‍👧','Familias','familias'],['📄','Documentos y firmas','documentos'],
     ['🖨️','Imprimir todo','imprimir'],
     ['📊','Cómo va el dojo','reportes'],
@@ -1381,6 +1438,204 @@ async function actualizarAhora(){
   cerrarAviso();
   try{ if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
   location.replace(location.pathname+'?v='+Date.now());
+}
+
+const PENSUM_FABRICA=[{"kyu":"9no kyu","cinturon":"Blanco · raya amarilla","maxOficial":42,"minOficial":30,"sesiones":21,"requisitos":[{"id":"9nokyu-1","n":1,"t":"Nombre del estilo de karate que práctica","tipo":"tecnica"},{"id":"9nokyu-2","n":2,"t":"Nombre del fundador en el mundo","tipo":"tecnica"},{"id":"9nokyu-3","n":3,"t":"Nombre del fundador en Rep. Dom","tipo":"tecnica"},{"id":"9nokyu-4","n":4,"t":"Nombre del dojo donde práctica","tipo":"tecnica"},{"id":"9nokyu-5","n":5,"t":"Defina el significado del emblema","tipo":"tecnica"},{"id":"9nokyu-6","n":6,"t":"Pronuncie nuestro credo","tipo":"tecnica"},{"id":"9nokyu-7","n":7,"t":"Ceremonia del inicio y final de clases","tipo":"tecnica"},{"id":"9nokyu-8","n":8,"t":"Kihon Dachi: heisoku, musubi, heiko, shiko Senkutsu, sanchin, katahiza, seiza, agura","tipo":"tecnica"},{"id":"9nokyu-9","n":9,"t":"Kihon Uke: jodan, chudan, gedan","tipo":"tecnica"},{"id":"9nokyu-10","n":10,"t":"Kihon Zuki: sonowa, seiken choku, kizami","tipo":"tecnica"},{"id":"9nokyu-11","n":11,"t":"Kihon Geri: mae, mawashi","tipo":"tecnica"},{"id":"9nokyu-12","n":12,"t":"contar hasta diez en Japonés","tipo":"tecnica"},{"id":"9nokyu-13","n":13,"t":"Conocer el significado de: hai, iee, uke, suki, Hayime, yame, rei, sensei, senpai, kohai, geri, dachi, Yoi, shugo seiretsu, kirisu, chatseki seisa, mokuso, Arigato, onegashimas","tipo":"tecnica"},{"id":"9nokyu-14","n":14,"t":"Poseer su uniforme completo","tipo":"admin"},{"id":"9nokyu-15","n":15,"t":"Decir el nombre del uniforme de karate","tipo":"tecnica"},{"id":"9nokyu-16","n":16,"t":"Hacer (6) Ippon Kumite","tipo":"tecnica"},{"id":"9nokyu-17","n":17,"t":"Saber amarrarse el cinturon correctamente","tipo":"tecnica"},{"id":"9nokyu-18","n":18,"t":"Mostrar como se entra y sale del dojo","tipo":"tecnica"},{"id":"9nokyu-19","n":19,"t":"Haber completado 21 sesiones de clases","tipo":"admin"},{"id":"9nokyu-20","n":20,"t":"Sembrar tres arboles","tipo":"admin"},{"id":"9nokyu-21","n":21,"t":"Prueba Física: sent, salt, abd, pechadas","tipo":"admin"}]},{"kyu":"8vo kyu","cinturon":"Amarillo","maxOficial":48,"minOficial":40,"sesiones":30,"requisitos":[{"id":"8vokyu-1","n":1,"t":"Kihon no kata ichi, ni, san (1, 2,3)","tipo":"tecnica"},{"id":"8vokyu-2","n":2,"t":"Kihon no kata shi, go, roku (4, 5, 6)","tipo":"tecnica"},{"id":"8vokyu-3","n":3,"t":"Kihon ni Kata Shodan","tipo":"tecnica"},{"id":"8vokyu-4","n":4,"t":"Hacer (4) ippon kumite","tipo":"tecnica"},{"id":"8vokyu-5","n":5,"t":"Kihon zuki sabaki","tipo":"tecnica"},{"id":"8vokyu-6","n":6,"t":"Kihon uke: chudan uchi, jodan uchikomi, Gedan uchi harai,chudan hiki","tipo":"tecnica"},{"id":"8vokyu-7","n":7,"t":"Kihon geri:yoko, ushiro","tipo":"tecnica"},{"id":"8vokyu-8","n":8,"t":"Rensoku: oi zuki/giaku zuki,jodan age Uke/giaku zuki,chudan soto uke/giaku zuki, Chudan uchi uke/giaku zuki,chudan hiki uke/ Sanren zuki,gedan harai uke /giaku zuki, Mae geri/oi zuki, mae geri/oi zukigiaku zuki, Mawashi geri/ giaku zuki,yoko geri/shuto uchi, Ushiro geri/uraken","tipo":"tecnica"},{"id":"8vokyu-9","n":9,"t":"Kihon dachi: kake ,neko ashi","tipo":"tecnica"},{"id":"8vokyu-10","n":10,"t":"Kihon zuki: sanbon, oi, giaku, uraken uchi, shuto uchi,empi uchi","tipo":"tecnica"},{"id":"8vokyu-11","n":11,"t":"Kihon shiai","tipo":"tecnica"},{"id":"8vokyu-12","n":12,"t":"Taikioku gedan","tipo":"tecnica"},{"id":"8vokyu-13","n":13,"t":"Taikioku chudan","tipo":"tecnica"},{"id":"8vokyu-14","n":14,"t":"Taikioku jodan","tipo":"tecnica"},{"id":"8vokyu-15","n":15,"t":"Prueba fis: sent, salt,abd, pechadas","tipo":"admin"},{"id":"8vokyu-16","n":16,"t":"Minimo 30 sesiones de práctica","tipo":"admin"}]},{"kyu":"7mo kyu","cinturon":"Anaranjado","maxOficial":60,"minOficial":50,"sesiones":30,"requisitos":[{"id":"7mokyu-1","n":1,"t":"Kihon zuki :chudan ura, kagi, age,sandan","tipo":"tecnica"},{"id":"7mokyu-2","n":2,"t":"Kihon dachi : han senkutsu,hachiji,yokomuki shiko,naname shiko","tipo":"tecnica"},{"id":"7mokyu-3","n":3,"t":"Kihon uke: chudan kake, gedan kosa, toraguchi","tipo":"tecnica"},{"id":"7mokyu-4","n":4,"t":"Kihon geri: ura mawashi, kaiten ura mawashi, Momo mawashi","tipo":"tecnica"},{"id":"7mokyu-5","n":5,"t":"Kihon uke renshu","tipo":"tecnica"},{"id":"7mokyu-6","n":6,"t":"Kihon ude tanden","tipo":"tecnica"},{"id":"7mokyu-7","n":7,"t":"Kihon shiai renshu","tipo":"tecnica"},{"id":"7mokyu-8","n":8,"t":"Saber el significado de: onegai shimas, Obi o mosube, kochie kite kudasai, Do itashi maste, shisurie shimas, genkiodas","tipo":"tecnica"},{"id":"7mokyu-9","n":9,"t":"Kihon no kata shi/yon (4)","tipo":"tecnica"},{"id":"7mokyu-10","n":10,"t":"Kihon no kata go (5)","tipo":"tecnica"},{"id":"7mokyu-11","n":11,"t":"Kihon no kata nidan","tipo":"tecnica"},{"id":"7mokyu-12","n":12,"t":"Taikioku toraguchi","tipo":"tecnica"},{"id":"7mokyu-13","n":13,"t":"Sichiyama shirenkan (1)","tipo":"tecnica"},{"id":"7mokyu-14","n":14,"t":"Sichiyama shirenkan (2)","tipo":"tecnica"},{"id":"7mokyu-15","n":15,"t":"Yakusoku ippon kumite: (5) Jodan age uke giaku zuki, chudan soto uke giaku Zuki, gedan harai uke giaku zuki, chudan kake uke Mawashi geri, chudan kake uke yoko geri","tipo":"tecnica"},{"id":"7mokyu-16","n":16,"t":"Renzoku geri – zuki","tipo":"tecnica"},{"id":"7mokyu-17","n":17,"t":"Makiwara: zuki – geri","tipo":"tecnica"},{"id":"7mokyu-18","n":18,"t":"Prueba fis: carrera 2 km en 7 minutos","tipo":"admin"},{"id":"7mokyu-19","n":19,"t":"Minimo 30 sesiones de práctica","tipo":"admin"},{"id":"7mokyu-20","n":20,"t":"Contar hasta (50) en japonés","tipo":"tecnica"}]},{"kyu":"6to kyu","cinturon":"Verde","maxOficial":75,"minOficial":60,"sesiones":36,"requisitos":[{"id":"6tokyu-1","n":1,"t":"Conocer la siguiente terminologia: Nihon, sanbon, semete, ukete, hantei, hayime, migi, hidari, Goshin jutsu, ukemi, gohon, yohon, hojo, seiri,jumbi, gekisai Ura,tettsui,yama,kakato,otoshi,sen no sen,go no sen","tipo":"tecnica"},{"id":"6tokyu-2","n":2,"t":"Kihon zuki: tateken,heiko, awase,yama,tettsui,nanameken","tipo":"tecnica"},{"id":"6tokyu-3","n":3,"t":"Kihon uke: shuto, chudan otoshi,gedan morote shotei","tipo":"tecnica"},{"id":"6tokyu-4","n":4,"t":"Kihon dachi : sagi ashi, tsuru ashi, koshi dachi","tipo":"tecnica"},{"id":"6tokyu-5","n":5,"t":"kihon geri : kakato otoshi, sokuto, ashi barai, kaiten ushiro giaku mawashi","tipo":"tecnica"},{"id":"6tokyu-6","n":6,"t":"Kihon ukemi: mae, yoko, ushiro","tipo":"tecnica"},{"id":"6tokyu-7","n":7,"t":"Kihon no kata sandan","tipo":"tecnica"},{"id":"6tokyu-8","n":8,"t":"Kihon empi hiji ate","tipo":"tecnica"},{"id":"6tokyu-9","n":9,"t":"Renzoku futari kihon no kata nidan","tipo":"tecnica"},{"id":"6tokyu-10","n":10,"t":"Renzoku futari kihon no kata sandan","tipo":"tecnica"},{"id":"6tokyu-11","n":11,"t":"Renzoku futari kihon empi hiji ate","tipo":"tecnica"},{"id":"6tokyu-12","n":12,"t":"Renzoku futari kihon uke renshu","tipo":"tecnica"},{"id":"6tokyu-13","n":13,"t":"Kihon goshin jutsu: agarre de frente a nivel de los brazos Agarre de frente por debajo de los brazos, agarre por detrás a Nivel de los codos, agarre por detrás por debajo de los brazos Agarre por detrás por el cuello, agarre de solapa, agarre de muñeca","tipo":"tecnica"},{"id":"6tokyu-14","n":14,"t":"Yakusoku ippon kumite (3)","tipo":"tecnica"},{"id":"6tokyu-15","n":15,"t":"Gekisai dai ichi","tipo":"tecnica"},{"id":"6tokyu-16","n":16,"t":"Gekisai dai ni","tipo":"tecnica"},{"id":"6tokyu-17","n":17,"t":"Renzoku bunkai kumite gekisai dai ichi","tipo":"tecnica"},{"id":"6tokyu-18","n":18,"t":"Renzoku bunkai kumite gekisai dai ni","tipo":"tecnica"},{"id":"6tokyu-19","n":19,"t":"Descripción area de competencia","tipo":"tecnica"},{"id":"6tokyu-20","n":20,"t":"Demostración de las areas de contacto en shiai","tipo":"tecnica"},{"id":"6tokyu-21","n":21,"t":"Irikumi Randori ju kumite","tipo":"tecnica"},{"id":"6tokyu-22","n":22,"t":"Makiwara: zuki, uchi, geri","tipo":"tecnica"},{"id":"6tokyu-23","n":23,"t":"Prueba Física: 30 sent, 30 Salt, 30 abd, 30 Peccadas","tipo":"admin"},{"id":"6tokyu-24","n":24,"t":"36 Sesiones de entrenamiento","tipo":"admin"}]},{"kyu":"5to kyu","cinturon":"Azul","maxOficial":90,"minOficial":70,"sesiones":40,"requisitos":[{"id":"5tokyu-1","n":1,"t":"Conocer : Tsuru, morote, koshi, Fumikomi, Fumidashi, shotei Shuto /teganata, sukui, osae, haito/ seganata, ashi, mikazuki, Nagashi","tipo":"tecnica"},{"id":"5tokyu-2","n":2,"t":"Kihon sandan uke harai","tipo":"tecnica"},{"id":"5tokyu-3","n":3,"t":"Kihon sandan gi","tipo":"tecnica"},{"id":"5tokyu-4","n":4,"t":"Kihon no kata yodan","tipo":"tecnica"},{"id":"5tokyu-5","n":5,"t":"Kihon geri, kihon no kata godan","tipo":"tecnica"},{"id":"5tokyu-6","n":6,"t":"Kihon ukemi","tipo":"tecnica"},{"id":"5tokyu-7","n":7,"t":"mae, mae maemawari, yoko, ushiro","tipo":"tecnica"},{"id":"5tokyu-8","n":8,"t":"Kihon uke: Sukui, kake ura , shotei osae , mawashi. Haishu, koken","tipo":"tecnica"},{"id":"5tokyu-9","n":9,"t":"Kihon zuki : Shotei , haito uchi , mawashi , furi , gaiwan , naiwan , Wanto, koken uchi, ippon ken,nakadaka ken","tipo":"tecnica"},{"id":"5tokyu-10","n":10,"t":"Kihon dachi : kiba /naihanchi , uchi , hachiji , hammi kokutsu","tipo":"tecnica"},{"id":"5tokyu-11","n":11,"t":"Kihon geri : mikazuki soto , mikazuki uchi ,Gyaku mawashi., Kagi / kakato","tipo":"tecnica"},{"id":"5tokyu-12","n":12,"t":"Bunkai kumite taikioku jodan","tipo":"tecnica"},{"id":"5tokyu-13","n":13,"t":"Bunkai kumite taikioku chudan","tipo":"tecnica"},{"id":"5tokyu-14","n":14,"t":"Bunkai kumite taikioku gedan","tipo":"tecnica"},{"id":"5tokyu-15","n":15,"t":"Bunkai kumite taikioku toraguchi","tipo":"tecnica"},{"id":"5tokyu-16","n":16,"t":"Bunkai kumite gekisai dai ichi","tipo":"tecnica"},{"id":"5tokyu-17","n":17,"t":"Bunkai kunite gekisai dai ni","tipo":"tecnica"},{"id":"5tokyu-18","n":18,"t":"Saifa","tipo":"tecnica"},{"id":"5tokyu-19","n":19,"t":"Goshin jutsu, contra tres agresores desarmados","tipo":"tecnica"},{"id":"5tokyu-20","n":20,"t":"Yakusoku ippon kumite (20)","tipo":"tecnica"},{"id":"5tokyu-21","n":21,"t":"Shiai kumite","tipo":"tecnica"},{"id":"5tokyu-22","n":22,"t":"Demostración de las penalidades de categoria uno en shiai","tipo":"tecnica"},{"id":"5tokyu-23","n":23,"t":"Demostración de las penalidades de categoria dos en shiai","tipo":"tecnica"},{"id":"5tokyu-24","n":24,"t":"Irikumi Randori ju kumite","tipo":"tecnica"},{"id":"5tokyu-25","n":25,"t":"Makiwara: zuki, uchi, geri","tipo":"tecnica"},{"id":"5tokyu-26","n":26,"t":"Tameshiware: zuki, uchi","tipo":"tecnica"},{"id":"5tokyu-27","n":27,"t":"Prueba Física: 40sent, 40salt, 40abd, 40pechadas","tipo":"admin"},{"id":"5tokyu-28","n":28,"t":"Diez horas de asistencia al maestro","tipo":"admin"},{"id":"5tokyu-29","n":29,"t":"Cuarenta horas de entrenamiento supervisado","tipo":"admin"},{"id":"5tokyu-30","n":30,"t":"20 horas de servicio a su comunidad","tipo":"admin"},{"id":"5tokyu-31","n":31,"t":"40 sesiones de entrenamiento","tipo":"admin"}]},{"kyu":"4to kyu","cinturon":"Morado","maxOficial":90,"minOficial":70,"sesiones":36,"requisitos":[{"id":"4tokyu-1","n":1,"t":"Kihon Ukemi","tipo":"tecnica"},{"id":"4tokyu-2","n":2,"t":"Yakusoku ippon kumite (10) ambos lados","tipo":"tecnica"},{"id":"4tokyu-3","n":3,"t":"Basai dai","tipo":"tecnica"},{"id":"4tokyu-4","n":4,"t":"Renzoku goshinjitsu : judo 5, bo 3, jo 3","tipo":"tecnica"},{"id":"4tokyu-5","n":5,"t":"Sandan Waza 5","tipo":"tecnica"},{"id":"4tokyu-6","n":6,"t":"Sambon Kumite (2)","tipo":"tecnica"},{"id":"4tokyu-7","n":7,"t":"Gekisai dai Ichi, Ni, Gekiha dai Ichi, Saifa, Seiunchin","tipo":"tecnica"},{"id":"4tokyu-8","n":8,"t":"Bunkai kumite Saifa, Seiunchin","tipo":"tecnica"},{"id":"4tokyu-9","n":9,"t":"Kihon dachi: Bensoku, kake, kokutsu, chooji, renoji","tipo":"tecnica"},{"id":"4tokyu-10","n":10,"t":"Kihon zuki: ipoon ken, nakadakaken, kaikoken, boshiken, koken","tipo":"tecnica"},{"id":"4tokyu-11","n":11,"t":"Kihon geri :kaiten, mikasuki soto, kakato fumikomi, nidan geri","tipo":"tecnica"},{"id":"4tokyu-12","n":12,"t":"Kihon Tobi Geri","tipo":"tecnica"},{"id":"4tokyu-13","n":13,"t":"Kihon uke :hojo, kuri, hari, chuge, joge","tipo":"tecnica"},{"id":"4tokyu-14","n":14,"t":"Makiwara :zuki, uchi, geri","tipo":"tecnica"},{"id":"4tokyu-15","n":15,"t":"Tameshiware (3)","tipo":"tecnica"},{"id":"4tokyu-16","n":16,"t":"Demostración de las penalidades de categoría uno en shiai","tipo":"tecnica"},{"id":"4tokyu-17","n":17,"t":"Demostración de las penalidades de categoría dos en shiai","tipo":"tecnica"},{"id":"4tokyu-18","n":18,"t":"Shiai Kumite","tipo":"tecnica"},{"id":"4tokyu-19","n":19,"t":"Randori Kumite","tipo":"tecnica"},{"id":"4tokyu-20","n":20,"t":"Diez horas de asistencia al maestro","tipo":"admin"},{"id":"4tokyu-21","n":21,"t":"Prueba física :50 sentadillas, 35 lagartijas, 20 saltos, 50 abdominales, 50 sapitos","tipo":"admin"},{"id":"4tokyu-22","n":22,"t":"Mínimo 36 secciones de clases como 5to kyu","tipo":"admin"},{"id":"4tokyu-23","n":23,"t":"Pagar derecho a examen","tipo":"admin"}]},{"kyu":"3er kyu","cinturon":"Marrón · 3er kyu","maxOficial":90,"minOficial":70,"sesiones":36,"requisitos":[{"id":"3erkyu-1","n":1,"t":"Yakusoku ipoon kumite 10","tipo":"tecnica"},{"id":"3erkyu-2","n":2,"t":"Repaso parcial kyu anteriores , 6to kyu en adelante","tipo":"tecnica"},{"id":"3erkyu-3","n":3,"t":"Bunkai kumite Gekisai dai ichi y ni","tipo":"tecnica"},{"id":"3erkyu-4","n":4,"t":"Bunkai kumite Saifa, Seiunchin","tipo":"tecnica"},{"id":"3erkyu-5","n":5,"t":"Renzoku goshinjitsu, judo 10, Aikido 5, bo 5, jo 5","tipo":"tecnica"},{"id":"3erkyu-6","n":6,"t":"Sanchin kata miyagi choyun","tipo":"tecnica"},{"id":"3erkyu-7","n":7,"t":"Seiunchin kata","tipo":"tecnica"},{"id":"3erkyu-8","n":8,"t":"Kata de bo 1,2","tipo":"tecnica"},{"id":"3erkyu-9","n":9,"t":"Kata de sai 1","tipo":"tecnica"},{"id":"3erkyu-10","n":10,"t":"Goshinjitsu, defensa, contra Tres ( 3) Agresores","tipo":"tecnica"},{"id":"3erkyu-11","n":11,"t":"Kihon dachi, moto, sesan, Kururunfa senkutzu, hangetsu, sanchin","tipo":"tecnica"},{"id":"3erkyu-12","n":12,"t":"Kihon zuki, ipoon nukite, nihon nukite, yohon nukite, kumade, washide","tipo":"tecnica"},{"id":"3erkyu-13","n":13,"t":"Kihon uke, morote shudan soto, jodan soto, jodan uchi, gedan shotei harai, jodan uchi","tipo":"tecnica"},{"id":"3erkyu-14","n":14,"t":"Kihon Tobi Geri","tipo":"tecnica"},{"id":"3erkyu-15","n":15,"t":"Gohon Kumite (2)","tipo":"tecnica"},{"id":"3erkyu-16","n":16,"t":"Mínimo 36 sesiones de clases como 4to kyu","tipo":"admin"},{"id":"3erkyu-17","n":17,"t":"Pagar derecho de examen","tipo":"admin"}]},{"kyu":"2do kyu","cinturon":"Marrón · 2do kyu","maxOficial":90,"minOficial":70,"sesiones":48,"requisitos":[{"id":"2dokyu-1","n":1,"t":"Yakusoku ippon kumite 10","tipo":"tecnica"},{"id":"2dokyu-2","n":2,"t":"Judo 5","tipo":"tecnica"},{"id":"2dokyu-3","n":3,"t":"Jujitsu 5","tipo":"tecnica"},{"id":"2dokyu-4","n":4,"t":"Renzoku goshinjitsu","tipo":"tecnica"},{"id":"2dokyu-5","n":5,"t":"Repaso parcial de kyu anteriores","tipo":"tecnica"},{"id":"2dokyu-6","n":6,"t":"Bunkai kumite seiunchin","tipo":"tecnica"},{"id":"2dokyu-7","n":7,"t":"Renzoku goshinjitsu, tonfa 3, nunchaku","tipo":"tecnica"},{"id":"2dokyu-8","n":8,"t":"Sakamoto shodan no kata","tipo":"tecnica"},{"id":"2dokyu-9","n":9,"t":"Sakamoto bodhidarma koshiki","tipo":"tecnica"},{"id":"2dokyu-10","n":10,"t":"Sanchin kata miyagi choyun","tipo":"tecnica"},{"id":"2dokyu-11","n":11,"t":"Seiunchin kata","tipo":"tecnica"},{"id":"2dokyu-12","n":12,"t":"Kata bo 1,2","tipo":"tecnica"},{"id":"2dokyu-13","n":13,"t":"Kata de sai 1,2","tipo":"tecnica"},{"id":"2dokyu-14","n":14,"t":"Kihon tobi geri, mae, mawashi, yoko, ushiro, kaiten, ushiro mawashi","tipo":"tecnica"},{"id":"2dokyu-15","n":15,"t":"Kihon uke, Koken , nagashi, morote chudan kaisho, kakiwake, jodan kaishojuji","tipo":"tecnica"},{"id":"2dokyu-16","n":16,"t":"Kihon zuki, kinteki uchi, keikoken, hiraken, gamen, naname, gamenshuto, ate, hirate","tipo":"tecnica"},{"id":"2dokyu-17","n":17,"t":"Shiai kumite 3","tipo":"tecnica"},{"id":"2dokyu-18","n":18,"t":"Irikumi 3","tipo":"tecnica"},{"id":"2dokyu-19","n":19,"t":"Terminologia, significado","tipo":"tecnica"},{"id":"2dokyu-20","n":20,"t":"Minimo 36 horas de monitoria supervisada","tipo":"admin"},{"id":"2dokyu-21","n":21,"t":"Mínimo 48 sesiones de clase como 3er kyu","tipo":"admin"},{"id":"2dokyu-22","n":22,"t":"Prueba física ampliada","tipo":"admin"}]},{"kyu":"1er kyu","cinturon":"Marrón · 1er kyu","maxOficial":90,"minOficial":70,"sesiones":60,"requisitos":[{"id":"1erkyu-1","n":1,"t":"Yakusoku ippon kumite 10","tipo":"tecnica"},{"id":"1erkyu-2","n":2,"t":"Repaso parcial kyu anteriores","tipo":"tecnica"},{"id":"1erkyu-3","n":3,"t":"Kata de bo 1,2","tipo":"tecnica"},{"id":"1erkyu-4","n":4,"t":"Judo 10","tipo":"tecnica"},{"id":"1erkyu-5","n":5,"t":"Jujitsu 10","tipo":"tecnica"},{"id":"1erkyu-6","n":6,"t":"Bunkai kumite sakamoto shodan","tipo":"tecnica"},{"id":"1erkyu-7","n":7,"t":"Curso básico primeros auxilios, teórico","tipo":"admin"},{"id":"1erkyu-8","n":8,"t":"Shisochin kata","tipo":"tecnica"},{"id":"1erkyu-9","n":9,"t":"Sai kata 1,2","tipo":"tecnica"},{"id":"1erkyu-10","n":10,"t":"Kihon tobi geri","tipo":"tecnica"},{"id":"1erkyu-11","n":11,"t":"Kihon uke","tipo":"tecnica"},{"id":"1erkyu-12","n":12,"t":"Sakamoto nidan no kata","tipo":"tecnica"},{"id":"1erkyu-13","n":13,"t":"Pago membresía por tres años, afiliación internacional","tipo":"admin"},{"id":"1erkyu-14","n":14,"t":"Mínimo 40 horas de monitoria supervisada","tipo":"admin"},{"id":"1erkyu-15","n":15,"t":"Mínimo 60 sesiones de clases como 2do kyu","tipo":"admin"},{"id":"1erkyu-16","n":16,"t":"Pagar derecho a examen","tipo":"admin"}]},{"kyu":"Shodan","cinturon":"Negro · Shodan (hoja 1)","maxOficial":90,"minOficial":70,"sesiones":60,"requisitos":[{"id":"Shodan-1","n":1,"t":"Repaso total kyu anteriores, oral practico y escrito","tipo":"tecnica"},{"id":"Shodan-2","n":2,"t":"Taukioku kata 1, 2, 3,4","tipo":"tecnica"},{"id":"Shodan-3","n":3,"t":"Sichiyama no kata 1,2","tipo":"tecnica"},{"id":"Shodan-4","n":4,"t":"Gekisa dai 1, 2,3","tipo":"tecnica"},{"id":"Shodan-5","n":5,"t":"Gekiha dai 1","tipo":"tecnica"},{"id":"Shodan-6","n":6,"t":"Saifa","tipo":"tecnica"},{"id":"Shodan-7","n":7,"t":"Seiyunchin/ Seienchin/ Seiyunchin koshiki","tipo":"tecnica"},{"id":"Shodan-8","n":8,"t":"Shisochin","tipo":"tecnica"},{"id":"Shodan-9","n":9,"t":"Sakamoto 1,2","tipo":"tecnica"},{"id":"Shodan-10","n":10,"t":"Sanchin kata (Chojun Miyagi)","tipo":"tecnica"},{"id":"Shodan-11","n":11,"t":"Yakusoku Ippon Kumite 50","tipo":"tecnica"},{"id":"Shodan-12","n":12,"t":"Bunkai kumite Sakamoto nidan","tipo":"tecnica"},{"id":"Shodan-13","n":13,"t":"Bunkai kumite shisochin","tipo":"tecnica"},{"id":"Shodan-14","n":14,"t":"Bunkai kumite kakie Sakamoto shodan","tipo":"tecnica"},{"id":"Shodan-15","n":15,"t":"Bunkai kumite kakie Sakamoto nidan","tipo":"tecnica"},{"id":"Shodan-16","n":16,"t":"Bunkai kumite kakie Seiunchin","tipo":"tecnica"},{"id":"Shodan-17","n":17,"t":"Kobudo no kata 3","tipo":"tecnica"},{"id":"Shodan-18","n":18,"t":"Shiai kumite 3","tipo":"tecnica"},{"id":"Shodan-19","n":19,"t":"I rikumi 3","tipo":"tecnica"},{"id":"Shodan-20","n":20,"t":"Randori 2","tipo":"tecnica"},{"id":"Shodan-21","n":21,"t":"Prueba física ampliada, 100 sentadillas, 50 l agartijas, 50 saltos, 100 abdominales, 100 sapitos, 5 Km. en 25 minutos en trote","tipo":"admin"},{"id":"Shodan-22","n":22,"t":"Minimo 60 horas monitoria supervisada","tipo":"admin"},{"id":"Shodan-23","n":23,"t":"Minimo 60 sesiones clases 1er kyu","tipo":"admin"},{"id":"Shodan-24","n":24,"t":"Edad mínima 13 años","tipo":"admin"},{"id":"Shodan-25","n":25,"t":"Pagar derecho de examen","tipo":"admin"}]},{"kyu":"Shodan 2","cinturon":"Negro · Shodan (hoja 2)","maxOficial":150,"minOficial":135,"sesiones":0,"requisitos":[{"id":"Shodan2-1","n":1,"t":"Conceptos teoricos","tipo":"tecnica"},{"id":"Shodan2-2","n":2,"t":"Posiciones","tipo":"tecnica"},{"id":"Shodan2-3","n":3,"t":"Bloqueos","tipo":"tecnica"},{"id":"Shodan2-4","n":4,"t":"Golpes de mano y puño","tipo":"tecnica"},{"id":"Shodan2-5","n":5,"t":"Golpes de Rodilla y pies","tipo":"tecnica"},{"id":"Shodan2-6","n":6,"t":"Kihon no Kata Shodan","tipo":"tecnica"},{"id":"Shodan2-7","n":7,"t":"Kihon no Kata Nidan","tipo":"tecnica"},{"id":"Shodan2-8","n":8,"t":"Kihon no Kata Sandan","tipo":"tecnica"},{"id":"Shodan2-9","n":9,"t":"Kihon no Kata Yondan","tipo":"tecnica"},{"id":"Shodan2-10","n":10,"t":"Kihon Geri","tipo":"tecnica"},{"id":"Shodan2-11","n":11,"t":"Kihon Empi Hiji ate","tipo":"tecnica"},{"id":"Shodan2-12","n":12,"t":"Kihon Uke Renshu","tipo":"tecnica"},{"id":"Shodan2-13","n":13,"t":"Kihon shiai","tipo":"tecnica"},{"id":"Shodan2-14","n":14,"t":"Kihon Sandan Uke harai","tipo":"tecnica"},{"id":"Shodan2-15","n":15,"t":"Kihon Sandan Gi","tipo":"tecnica"},{"id":"Shodan2-16","n":16,"t":"Kihon Ude Tanden","tipo":"tecnica"},{"id":"Shodan2-17","n":17,"t":"Kihon Renshu","tipo":"tecnica"},{"id":"Shodan2-18","n":18,"t":"Renzoku Geri y zuki","tipo":"tecnica"},{"id":"Shodan2-19","n":19,"t":"Taikioku Gedan","tipo":"tecnica"},{"id":"Shodan2-20","n":20,"t":"Taikioku Chudan","tipo":"tecnica"},{"id":"Shodan2-21","n":21,"t":"Taikioku Jodan","tipo":"tecnica"},{"id":"Shodan2-22","n":22,"t":"Taikioku Tora Guchi","tipo":"tecnica"},{"id":"Shodan2-23","n":23,"t":"Sichiyama Shirenkan 1","tipo":"tecnica"},{"id":"Shodan2-24","n":24,"t":"Sichiyama Shirenkan 2","tipo":"tecnica"},{"id":"Shodan2-25","n":25,"t":"Gekisai dai 1","tipo":"tecnica"},{"id":"Shodan2-26","n":26,"t":"Gekisai dai 2","tipo":"tecnica"},{"id":"Shodan2-27","n":27,"t":"Saifa","tipo":"tecnica"},{"id":"Shodan2-28","n":28,"t":"Seiyunchin","tipo":"tecnica"},{"id":"Shodan2-29","n":29,"t":"Seiyunchin Koshiki","tipo":"tecnica"},{"id":"Shodan2-30","n":30,"t":"Sanchin Chojun Miyagi","tipo":"tecnica"},{"id":"Shodan2-31","n":31,"t":"Yakusoku Ippon Kumite","tipo":"tecnica"},{"id":"Shodan2-32","n":32,"t":"Shisochin","tipo":"tecnica"},{"id":"Shodan2-33","n":33,"t":"Renshu ichi Sakamoro","tipo":"tecnica"},{"id":"Shodan2-34","n":34,"t":"Renshu ni Sakamoto","tipo":"tecnica"},{"id":"Shodan2-35","n":35,"t":"Renshu san Sakamoto","tipo":"tecnica"},{"id":"Shodan2-36","n":36,"t":"Judo (5)","tipo":"tecnica"},{"id":"Shodan2-37","n":37,"t":"Ju jutsu (5)","tipo":"tecnica"},{"id":"Shodan2-38","n":38,"t":"Kobudo: Jo Kata","tipo":"tecnica"},{"id":"Shodan2-39","n":39,"t":"Kobudo: Bo Kata","tipo":"tecnica"},{"id":"Shodan2-40","n":40,"t":"Kobudo: Nunchaku","tipo":"tecnica"},{"id":"Shodan2-41","n":41,"t":"Kobudo: Sai Kata","tipo":"tecnica"},{"id":"Shodan2-42","n":42,"t":"Puntos de presión (Vitales)","tipo":"tecnica"},{"id":"Shodan2-43","n":43,"t":"Makiwara zuki, uchi, geri","tipo":"tecnica"},{"id":"Shodan2-44","n":44,"t":"Tameshiware","tipo":"tecnica"},{"id":"Shodan2-45","n":45,"t":"Shiai","tipo":"tecnica"},{"id":"Shodan2-46","n":46,"t":"Area, penalizaciones, puntos","tipo":"tecnica"},{"id":"Shodan2-47","n":47,"t":"Irikumi Randori ju kumite","tipo":"tecnica"},{"id":"Shodan2-48","n":48,"t":"Prueba fisica: 50sent, 50salt 50abd, 50pechadas, 3km en 20min","tipo":"admin"},{"id":"Shodan2-49","n":49,"t":"Curso Primeros Auxilios","tipo":"admin"},{"id":"Shodan2-50","n":50,"t":"Minimo (4) años en el sistema/ Presentacion examen Teórico","tipo":"admin"}]}];
+/* =========================== PÉNSUM DE GRADOS ===========================
+   Los requisitos de verdad viven en el GRADO OFICIAL del pénsum.
+   Cada escalón del dojo apunta a un grado y carga una PARTE de sus requisitos.
+   En el examen se califica requisito por requisito: Excelente 3, Bueno 2,
+   Promedio 1, o "no le toca" (0 y no cuenta para el máximo).
+======================================================================== */
+const NOTAS_PENSUM=[['3','Excelente'],['2','Bueno'],['1','Promedio'],['0','No le toca hoy']];
+function pensum(){ return (D&&D.pensum)||[]; }
+function gradoPensum(id){ return pensum().find(g=>g.kyu===id)||null; }
+function reqDe(kyuId,reqId){ const g=gradoPensum(kyuId); if(!g) return null;
+  return (g.requisitos||[]).find(r=>r.id===reqId)||null; }
+function reqPorId(reqId){
+  for(const g of pensum()){ const r=(g.requisitos||[]).find(x=>x.id===reqId); if(r) return {g,r}; }
+  return null;
+}
+/* los requisitos que le tocan a un escalón */
+function requisitosDeCinturon(c){
+  if(!c||!c.kyuId) return [];
+  const g=gradoPensum(c.kyuId); if(!g) return [];
+  const ids=c.reqs&&c.reqs.length? c.reqs : (g.requisitos||[]).map(r=>r.id);
+  return (g.requisitos||[]).filter(r=>ids.includes(r.id));
+}
+function porcentajeMinimo(g){ return g&&g.maxOficial? g.minOficial/g.maxOficial : 0.78; }
+
+/* ---------- pantalla del pénsum ---------- */
+let PEN_ABIERTO=-1;
+PINTORES.pensum=()=>{
+  const P=pensum();
+  $('v-pensum').innerHTML=`
+  <div class="card"><div class="hd">📚 Pénsum de grados</div>
+    <div class="mini">Goju Ryu de Okinawa. Aquí viven los requisitos de verdad.
+      Cada escalón de tu escalera toma la parte que tú le asignes.</div>
+    <button class="btn" style="margin-top:9px" onclick="imprimirPensum()">🖨️ Imprimir el pénsum completo</button>
+  </div>
+  ${P.map((g,i)=>{
+    const tec=g.requisitos.filter(r=>r.tipo==='tecnica').length;
+    const adm=g.requisitos.length-tec;
+    return `<div class="card">
+    <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+      onclick="PEN_ABIERTO=${PEN_ABIERTO===i?-1:i};PINTORES.pensum()">
+      <div class="izq"><div class="n1">${esc(g.kyu)} · ${esc(g.cinturon)}</div>
+        <div class="n2">${g.requisitos.length} requisitos · ${tec} de técnica · ${adm} de otro tipo
+          · mínimo ${g.sesiones||0} clases</div></div>
+      <span class="fl gris">${PEN_ABIERTO===i?'▾':'›'}</span></button>
+    ${PEN_ABIERTO===i?`
+      <div class="mini" style="margin:8px 0">Puntuación del pénsum: máximo ${g.maxOficial},
+        aprueba con ${g.minOficial} (${Math.round(porcentajeMinimo(g)*100)}%).</div>
+      ${g.requisitos.map(r=>`<div class="fila"><div class="izq">
+        <div class="n2"><b>${r.n}.</b> ${esc(r.t)}</div></div>
+        ${r.tipo==='admin'?'<span class="chip a">otro</span>':''}</div>`).join('')}
+    `:''}
+  </div>`;}).join('')}`;
+};
+function imprimirPensum(){
+  let h=encabezadoDoc('PÉNSUM DE GRADOS','GOJU RYU KARATE DO · OKINAWA');
+  h+=`<h2>Resumen</h2><table><tr><th>Grado</th><th>Cinturón</th><th>Requisitos</th><th>Máximo</th><th>Aprueba con</th><th>Clases</th></tr>
+    ${pensum().map(g=>`<tr><td>${esc(g.kyu)}</td><td>${esc(g.cinturon)}</td>
+      <td>${g.requisitos.length}</td><td>${g.maxOficial}</td><td>${g.minOficial}</td><td>${g.sesiones||'—'}</td></tr>`).join('')}</table>`;
+  pensum().forEach(g=>{
+    h+=`<div class="nueva"></div><h2>${esc(g.kyu)} · ${esc(g.cinturon)}</h2>`;
+    h+=`<table><tr><th style="width:6%">#</th><th style="width:auto">Requisito</th><th style="width:22%">Calificación</th></tr>
+      ${g.requisitos.map(r=>`<tr><td>${r.n}</td><td>${esc(r.t)}</td><td>&nbsp;</td></tr>`).join('')}</table>
+      <div class="tx">Máximo ${g.maxOficial} · mínimo para aprobar ${g.minOficial} ·
+        mínimo ${g.sesiones||0} sesiones de clase.</div>`;
+  });
+  abrirImpresion(h,'Pénsum de grados · Okamura Dojo');
+}
+
+/* ---------- asignar requisitos a un escalón ---------- */
+function asignarRequisitos(cid){
+  const c=porId(D.cinturones,cid);
+  const P=pensum();
+  const g=gradoPensum(c.kyuId);
+  const ids=c.reqs||[];
+  hoja('Requisitos de '+c.nombre,`
+   <div class="campo"><label>Grado del pénsum al que pertenece</label>
+     <select id="as-kyu" onchange="cambiarKyuEscalon('${cid}',this.value)">
+       <option value="">— ninguno (escalón libre) —</option>
+       ${P.map(x=>`<option value="${esc(x.kyu)}"${x.kyu===c.kyuId?' selected':''}>${esc(x.kyu)} · ${esc(x.cinturon)}</option>`).join('')}
+     </select></div>
+   ${g?`<div class="mini" style="margin-bottom:8px">Marca lo que se le exige en <b>este</b> escalón.
+      Lo que dejes sin marcar se lo pides en el escalón siguiente.</div>
+    <div class="dosc" style="margin-bottom:8px">
+      <button class="btn chico" onclick="marcarTodosReq('${cid}',true)">Marcar todo</button>
+      <button class="btn chico" onclick="marcarTodosReq('${cid}',false)">Quitar todo</button>
+    </div>
+    <div id="as-lista">${g.requisitos.map(r=>`
+      <label class="check" style="align-items:flex-start">
+        <input type="checkbox" class="as-req" value="${r.id}" ${!ids.length||ids.includes(r.id)?'checked':''}>
+        <span><b>${r.n}.</b> ${esc(r.t)}${r.tipo==='admin'?' <span class="chip a">otro</span>':''}</span></label>`).join('')}</div>
+    <button class="btn pri" style="margin-top:10px" onclick="guardarRequisitos('${cid}')">Guardar</button>`
+   :'<div class="nota">Escoge primero a qué grado del pénsum pertenece este escalón.</div>'}`);
+}
+function cambiarKyuEscalon(cid,kyu){
+  const c=porId(D.cinturones,cid);
+  c.kyuId=kyu; c.reqs=[];
+  const g=gradoPensum(kyu);
+  if(g){ c.clases=g.sesiones||c.clases; }
+  guardar(); cerrarHoja(); asignarRequisitos(cid);
+}
+function marcarTodosReq(cid,si){
+  document.querySelectorAll('.as-req').forEach(x=>x.checked=si);
+}
+function guardarRequisitos(cid){
+  const c=porId(D.cinturones,cid);
+  c.reqs=[...document.querySelectorAll('.as-req:checked')].map(x=>x.value);
+  log('Cambió los requisitos de '+c.nombre+' ('+c.reqs.length+')');
+  guardar(); sonOK(); cerrarHoja(); toast('Guardado'); ir('cinturones');
+}
+
+/* ---------- el examen, requisito por requisito ---------- */
+function notasDe(al){ al.notas=al.notas||{}; return al.notas; }
+function requisitosDelExamen(al){
+  const c=porId(D.cinturones,al.aId);
+  const base=requisitosDeCinturon(c).map(r=>r.id);
+  const extra=(al.extra||[]).filter(id=>!base.includes(id));
+  return base.concat(extra);
+}
+function puntajeExamen(al){
+  const ids=requisitosDelExamen(al), n=notasDe(al);
+  let suma=0, cuentan=0;
+  ids.forEach(id=>{ const v=Number(n[id]===undefined?3:n[id]);
+    if(v>0){ suma+=v; cuentan++; } });
+  const c=porId(D.cinturones,al.aId);
+  const g=c?gradoPensum(c.kyuId):null;
+  const max=cuentan*3;
+  const min=Math.round(max*porcentajeMinimo(g));
+  return {suma,max,min,cuentan,pasa:max>0&&suma>=min,
+    pct: max? Math.round(suma/max*100):0};
+}
+function ponerNota(exId,i,reqId,v){
+  const x=porId(D.examenes,exId); const al=x.alumnos[i];
+  notasDe(al)[reqId]=Number(v);
+  guardar(); PINTORES.examen();
+}
+function agregarRequisitoExamen(exId,i){
+  const x=porId(D.examenes,exId); const al=x.alumnos[i];
+  const puestos=requisitosDelExamen(al);
+  hoja('Agregar un requisito del pénsum',`
+   <div class="mini" style="margin-bottom:9px">Escoge cualquier requisito de cualquier grado.
+     Se le suma a este alumno solo para este examen.</div>
+   ${pensum().map(g=>`<div class="card"><div class="hd">${esc(g.kyu)} · ${esc(g.cinturon)}</div>
+     ${g.requisitos.filter(r=>!puestos.includes(r.id)).map(r=>`
+       <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+         onclick="sumarRequisito('${exId}',${i},'${r.id}')">
+         <div class="izq"><div class="n2"><b>${r.n}.</b> ${esc(r.t)}</div></div>
+         <span class="fl gris">➕</span></button>`).join('')||'<div class="mini">Ya los tiene todos.</div>'}
+   </div>`).join('')}`);
+}
+function sumarRequisito(exId,i,reqId){
+  const x=porId(D.examenes,exId); const al=x.alumnos[i];
+  al.extra=al.extra||[]; if(!al.extra.includes(reqId)) al.extra.push(reqId);
+  guardar(); sonOK(); cerrarHoja(); toast('Requisito agregado'); PINTORES.examen();
+}
+function quitarRequisitoExamen(exId,i,reqId){
+  const x=porId(D.examenes,exId); const al=x.alumnos[i];
+  al.extra=(al.extra||[]).filter(r=>r!==reqId);
+  delete notasDe(al)[reqId];
+  guardar(); PINTORES.examen();
+}
+/* la planilla imprimible del examen */
+function imprimirExamen(exId){
+  const x=porId(D.examenes,exId);
+  let h='';
+  (x.alumnos||[]).forEach((al,i)=>{
+    const a=porId(D.alumnos,al.alumnoId); if(!a) return;
+    const de=porId(D.cinturones,al.deId), aa=porId(D.cinturones,al.aId);
+    const g=aa?gradoPensum(aa.kyuId):null;
+    const p=puntajeExamen(al); const n=notasDe(al);
+    if(i) h+='<div class="nueva"></div>';
+    h+=encabezadoDoc('HOJA DE EVALUACIÓN','GOJU RYU KARATE DO · OKINAWA');
+    h+=`<table>
+      <tr><th>Nombre</th><td>${esc(nombreAlumno(a))}</td></tr>
+      <tr><th>Edad</th><td>${edadDe(a.nacim)===null?'':edadDe(a.nacim)+' años'}</td></tr>
+      <tr><th>Fecha</th><td>${fechaLarga(x.fecha)}</td></tr>
+      <tr><th>Examen</th><td>${esc(x.nombre)}</td></tr>
+      <tr><th>De</th><td>${de?esc(nombreGrado(de)):''}</td></tr>
+      <tr><th>Sube a</th><td>${aa?esc(nombreGrado(aa)):''}${g?' · '+esc(g.kyu):''}</td></tr></table>`;
+    h+=`<table><tr><th style="width:6%">#</th><th style="width:auto">Requisito</th>
+      <th style="width:26%">Calificación</th></tr>
+      ${requisitosDelExamen(al).map((id,k)=>{ const rr=reqPorId(id); if(!rr) return '';
+        const v=n[id]===undefined?3:Number(n[id]);
+        const et={3:'Excelente (3)',2:'Bueno (2)',1:'Promedio (1)',0:'No le tocó'}[v];
+        return `<tr><td>${k+1}</td><td>${esc(rr.r.t)}</td><td>${et}</td></tr>`;}).join('')}</table>`;
+    h+=`<table><tr><th>Puntuación obtenida</th><td>${p.suma} de ${p.max} (${p.pct}%)</td></tr>
+      <tr><th>Mínimo para aprobar</th><td>${p.min}</td></tr>
+      <tr><th>Resultado</th><td><b>${al.paso===true?'APROBADO':(al.paso===false?'NO APROBADO':(p.pasa?'alcanza el mínimo':'no alcanza el mínimo'))}</b></td></tr>
+      <tr><th>Rango alcanzado</th><td>${al.paso===true&&aa?esc(nombreGrado(aa)):''}</td></tr>
+      ${al.nota?`<tr><th>Notas</th><td>${esc(al.nota)}</td></tr>`:''}</table>`;
+    h+=`<div class="firma"><div class="lineas">
+      <div class="linea">Firma del evaluador</div><div class="linea">Nombre</div><div class="linea">Fecha</div>
+    </div></div>`;
+  });
+  if(!h) h=encabezadoDoc('HOJA DE EVALUACIÓN','')+'<div class="tx">Este examen no tiene alumnos.</div>';
+  abrirImpresion(h,'Examen · '+x.nombre);
 }
 
 /* ---------- edad ---------- */
@@ -2700,6 +2955,20 @@ function borrarAlumno(id){
   });
 }
 function verTecnicas(id){
+  const aa=porId(D.alumnos,id); const ee=elegibilidad(aa);
+  const lista=ee.sig?requisitosDeCinturon(ee.sig):[];
+  if(lista.length){
+    return hoja('Requisitos de '+ee.sig.nombre,
+      `<div class="mini" style="margin-bottom:9px">Marca lo que ${esc(nombreCorto(aa))} ya domina.
+        Son los requisitos del pénsum para ese grado.</div>`+
+      lista.map(r=>`<label class="check" style="align-items:flex-start">
+        <input type="checkbox" ${(aa.tecnicas||[]).includes(r.id)?'checked':''}
+          onchange="marcarTecnica('${id}','${r.id}')">
+        <span><b>${r.n}.</b> ${esc(r.t)}${r.tipo==='admin'?' <span class="chip a">otro</span>':''}</span></label>`).join(''));
+  }
+  return verTecnicasViejo(id);
+}
+function verTecnicasViejo(id){
   const a=porId(D.alumnos,id), c=cintDe(a);
   const ts=(c&&c.tecnicas)||[];
   hoja('Técnicas de '+(c?c.nombre:''),
@@ -2931,6 +3200,8 @@ function editarCinturon(id){
      <div class="campo" style="margin-top:8px"><input id="ci-nueva" placeholder="Agregar una técnica…">
        <button class="btn chico" style="margin-top:6px" onclick="agregarTecnica('${c.id}')">➕ Agregar técnica</button></div>`
     :'<div class="mini">Guárdalo primero y después le agregas las técnicas.</div>'}
+   ${id?`<button class="btn" style="margin-top:10px" onclick="cerrarHoja();asignarRequisitos('${id}')">
+     📚 Requisitos del pénsum${c.kyuId?' · '+esc(c.kyuId):' · sin grado'}</button>`:''}
    <button class="btn pri" style="margin-top:10px" onclick="guardarCinturon('${id||''}')">Guardar</button>
    ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarCinturon('${id}')">🗑️ Borrar cinturón</button>`:''}`);
 }
@@ -3048,7 +3319,7 @@ function crearExamen(){
   const ex={id:uid(),nombre:($('ex-nom').value||'Examen').trim(),fecha:$('ex-fecha').value||hoyISO(),
     cerrado:false, alumnos:ids.map(id=>{ const a=porId(D.alumnos,id), e=elegibilidad(a);
       return {alumnoId:id, deId:(e.c||{}).id||'', aId:(e.sig||{}).id||'',
-        Kata:0,Kumite:0,Kihon:0,'Espíritu':0, paso:null, nota:''}; })};
+        notas:{}, extra:[], paso:null, nota:''}; })};
   D.examenes.push(ex);
   log('Creó el examen "'+ex.nombre+'" con '+ids.length+' alumnos');
   guardar(); cerrarHoja(); EXAMEN_ACTUAL=ex.id; ir('examen');
@@ -3063,22 +3334,41 @@ PINTORES.examen=()=>{
   <div class="card">
     <div class="hd">📋 ${esc(x.nombre)}</div>
     <div class="mini">${fLarga(x.fecha)} · ${(x.alumnos||[]).length} alumnos${x.cerrado?' · terminado':''}</div>
+    <button class="btn" style="margin-top:9px" onclick="imprimirExamen('${x.id}')">🖨️ Imprimir las hojas de evaluación</button>
   </div>
   ${(x.alumnos||[]).map((al,i)=>{
     const a=porId(D.alumnos,al.alumnoId); if(!a) return '';
     const de=porId(D.cinturones,al.deId), aa=porId(D.cinturones,al.aId);
+    const g=aa?gradoPensum(aa.kyuId):null;
+    const p=puntajeExamen(al); const n=notasDe(al);
+    const ids=requisitosDelExamen(al);
+    const base=aa?requisitosDeCinturon(aa).map(r=>r.id):[];
     return `<div class="card">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:9px">
         <div class="avatar sm tocable" onclick="event.stopPropagation();verFotoGrande('${a.id}')" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':'👤'}</div>
         <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(nombreAlumno(a))}</div>
-        <div class="n2">${cintaHTML(de,true)} ${esc(de?de.nombre:'')} → ${cintaHTML(aa,true)} ${esc(aa?aa.nombre:'')}</div></div>
+        <div class="n2">${cintaHTML(de,true)} → ${cintaHTML(aa,true)} ${esc(aa?aa.nombre:'')}${g?' · '+esc(g.kyu):''}</div></div>
         ${al.paso===true?'<span class="chip v">PASÓ</span>':(al.paso===false?'<span class="chip r">NO PASÓ</span>':'')}
       </div>
-      ${CRITERIOS.map(k=>`<div style="margin-bottom:7px">
-        <div class="mini" style="margin-bottom:3px">${k}</div>
-        <div class="puntaje">${[1,2,3,4,5].map(v=>
-          `<button class="${al[k]===v?'sel':''}" onclick="puntuar('${x.id}',${i},'${k}',${v})">${v}</button>`).join('')}</div>
-      </div>`).join('')}
+      ${ids.length? ids.map(id=>{ const rr=reqPorId(id); if(!rr) return '';
+        const v=n[id]===undefined?3:Number(n[id]);
+        return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--linea)">
+          <div class="n2" style="margin-bottom:5px"><b>${rr.r.n}.</b> ${esc(rr.r.t)}
+            ${base.includes(id)?'':'<span class="chip a">agregado</span>'}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select style="flex:1" onchange="ponerNota('${x.id}',${i},'${id}',this.value)">
+              ${NOTAS_PENSUM.map(([val,et])=>`<option value="${val}"${Number(val)===v?' selected':''}>${et}</option>`).join('')}
+            </select>
+            ${base.includes(id)?'':`<button class="btn chico peligro" style="width:auto" onclick="quitarRequisitoExamen('${x.id}',${i},'${id}')">🗑️</button>`}
+          </div></div>`;}).join('')
+        :'<div class="nota al">Este grado todavía no tiene requisitos asignados. Ve a ☰ → Cinturones y grados.</div>'}
+      <button class="btn chico" style="margin-top:6px" onclick="agregarRequisitoExamen('${x.id}',${i})">➕ Agregar un requisito del pénsum</button>
+      <div class="calc" style="margin-top:9px">
+        <div class="fila"><span class="gris">Requisitos que se le exigen</span><span class="mono">${p.cuentan}</span></div>
+        <div class="fila"><span class="gris">Puntuación</span><span class="mono">${p.suma} de ${p.max} · ${p.pct}%</span></div>
+        <div class="fila"><span><b>Mínimo para aprobar</b></span><span class="mono ${p.pasa?'verde':'ambar'}"><b>${p.min}</b></span></div>
+        <div class="barra-b ${p.pasa?'v':'a'}"><i style="width:${Math.min(100,p.pct)}%"></i></div>
+      </div>
       <div class="campo" style="margin-top:8px"><input placeholder="Nota del examen…" value="${esc(al.nota||'')}"
         onchange="notaExamen('${x.id}',${i},this.value)"></div>
       <div class="dosc">
