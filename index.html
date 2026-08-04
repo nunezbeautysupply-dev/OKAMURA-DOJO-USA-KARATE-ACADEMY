@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260803i-DOJO-V3.4">
+<meta name="app-version" content="20260803j-DOJO-V4.0">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -212,6 +212,36 @@ svg.ic{width:1.25em;height:1.25em;fill:currentColor;display:inline-block;vertica
 .rejilla .btn .e svg.ic{width:26px;height:26px;fill:#0d1013;vertical-align:0}
 #abajo button .e svg.ic{width:24px;height:24px;fill:currentColor;vertical-align:0}
 a[href^="tel:"] svg.ic,a[href^="sms:"] svg.ic{width:20px;height:20px;fill:currentColor;vertical-align:-0.25em}
+/* embudo de prospectos */
+.embudo{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.embudo .paso{border:2px solid var(--linea);border-radius:10px;padding:8px 4px;text-align:center}
+.embudo .num{font-size:22px;font-weight:800;line-height:1}
+.embudo .et{font-size:11px;color:var(--texto3);margin-top:3px;line-height:1.15}
+/* panel de retención */
+.mesfila{display:grid;grid-template-columns:38px 1fr 62px 70px;gap:7px;align-items:center;margin-bottom:7px}
+.mesnom{font-size:13px;color:var(--texto3);font-weight:700}
+.mesbarra{position:relative;background:var(--tarjeta2);border-radius:6px;height:24px;overflow:hidden}
+.mesbarra i{position:absolute;left:0;top:0;bottom:0;background:#2f5d8a;border-radius:6px}
+.mesbarra b{position:relative;z-index:2;font-size:13px;padding-left:7px;line-height:24px}
+.mesmov{font-size:13.5px;white-space:nowrap}
+/* kiosco */
+#kiosco{display:none}
+body.en-kiosco #kiosco{display:block;position:fixed;inset:0;z-index:400;background:#000;overflow-y:auto;padding:14px}
+body.en-kiosco #barra,body.en-kiosco #abajo,body.en-kiosco .wrap{display:none!important}
+.k-top{text-align:center;margin-bottom:14px}
+.k-tit{font-size:20px;font-weight:800;color:var(--acento);letter-spacing:1px}
+.k-sub{font-size:15px;color:var(--texto2);margin-top:4px}
+.k-grupos{display:flex;gap:7px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.k-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.k-cara{background:var(--tarjeta);border:2px solid var(--linea);border-radius:14px;padding:9px 5px;
+  color:var(--texto);cursor:pointer;text-align:center}
+.k-cara.si{background:#12331f;border-color:var(--verde)}
+.k-foto{width:64px;height:64px;border-radius:50%;margin:0 auto 6px;background:var(--tarjeta2) center/cover;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.k-nom{font-size:14px;font-weight:600;line-height:1.2}
+.k-ok{font-size:12px;color:var(--verde);font-weight:700;margin-top:3px}
+.k-salir{display:block;margin:20px auto 8px;background:var(--tarjeta2);border:1px solid var(--linea);
+  color:var(--texto3);border-radius:10px;padding:11px 20px;font:inherit;font-size:14px;cursor:pointer}
 .firmacanvas{width:100%;height:160px;background:var(--campos);border:1px dashed var(--linea);
   border-radius:9px;touch-action:none;display:block}
 .condrop{position:relative}
@@ -369,6 +399,9 @@ body{background:#000}
   <div class="vista" id="v-backup"></div>
   <div class="vista" id="v-documentos"></div>
   <div class="vista" id="v-pensum"></div>
+  <div class="vista" id="v-prospectos"></div>
+  <div class="vista" id="v-retencion"></div>
+  <div class="vista" id="v-tienda"></div>
   <div class="vista" id="v-imprimir"></div>
   <div class="vista" id="v-manual"></div>
   <div class="vista" id="v-bitacora"></div>
@@ -381,6 +414,7 @@ body{background:#000}
 </div>
 </div>
 
+<div id="kiosco"></div>
 <div id="capa-foto" onclick="cerrarFoto()"></div>
 <div id="capa-aviso"></div>
 <div class="capa" id="capa"><div class="hoja" id="hoja"></div></div>
@@ -393,7 +427,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260803i-DOJO-V3.4';
+const VERSION_APP='20260803j-DOJO-V4.0';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -556,6 +590,7 @@ function datosNuevos(){
       {id:uid(),nombre:'Grupo 2',desde:'19:00',hasta:'20:00',dias:[2,4],activo:true}
     ],
     pensum:JSON.parse(JSON.stringify(PENSUM_FABRICA)),
+    prospectos:[], productos:[], ventas:[],
     cinturones:cints, alumnos:[], familias:[], asistencia:[], pagos:[], examenes:[],
     bitacora:[],
     config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$', sonido:true, parentescos:[]}
@@ -579,6 +614,9 @@ function cargar(){
     if(d.config.huellaBorrar===undefined) d.config.huellaBorrar=true;
     if(d.config.sonido===undefined) d.config.sonido=true;
     if(!d.config.parentescos) d.config.parentescos=[];
+    if(!d.prospectos) d.prospectos=[];
+    if(!d.productos) d.productos=[];
+    if(!d.ventas) d.ventas=[];
     ['grupos','cinturones','alumnos','familias','asistencia','pagos','examenes','bitacora']
       .forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
     d.cinturones.forEach(c=>{ if(!Array.isArray(c.tecnicas)) c.tecnicas=[]; });
@@ -754,8 +792,8 @@ function desdeCinturon(a){
 function elegibilidad(a){
   const c=cintDe(a), sig=siguienteCint(c);
   const d0=desdeCinturon(a), hoy=hoyISO();
-  const trasExamen=!!(a.historial&&a.historial.length);
-  const clases=clasesDesde(a.id,d0,trasExamen);
+  /* Sensei decidió que la clase del día del examen SÍ cuenta para el grado nuevo */
+  const clases=clasesDesde(a.id,d0,false);
   const meses=mesesEntre(d0,hoy);
   const reqs=(sig?requisitosDeCinturon(sig):[]);
   const tot=reqs.length;
@@ -789,13 +827,15 @@ function menu(){
   const items=[
     ['🎓','Listos para examen','elegibles'],['📋','Exámenes','examenes'],
     ['🥋','Cinturones y grados','cinturones'],['📚','Pénsum de grados','pensum'],['🕕','Grupos y horarios','grupos'],
-    ['👨‍👩‍👧','Familias','familias'],['📄','Documentos y firmas','documentos'],
+    ['🎯','Prospectos','prospectos'],['👨‍👩‍👧','Familias','familias'],
+    ['📄','Documentos y firmas','documentos'],['🛒','Tienda del dojo','tienda'],
+    ['📈','Cómo se mueve el dojo','retencion'],
     ['🖨️','Imprimir todo','imprimir'],
     ['📊','Cómo va el dojo','reportes'],
-    ['💾','Backup y seguridad','backup'],['📖','Manual de uso','manual'],['📓','Bitácora','bitacora']
+    ['🚪','Kiosco de entrada','__kiosco'],['💾','Backup y seguridad','backup'],['📖','Manual de uso','manual'],['📓','Bitácora','bitacora']
   ];
   hoja('Menú', items.map(i=>
-    `<button class="op" onclick="cerrarHoja();ir('${i[2]}')"><span>${i[0]} ${esc(i[1])}</span><span class="fl">›</span></button>`
+    `<button class="op" onclick="cerrarHoja();${i[2]==='__kiosco'?'abrirKiosco()':`ir('${i[2]}')`}"><span>${i[0]} ${esc(i[1])}</span><span class="fl">›</span></button>`
   ).join('')+`<div class="mini" style="margin-top:14px;text-align:center">Versión ${VERSION_APP}</div>`);
 }
 /* =========================== INICIO =========================== */
@@ -1018,6 +1058,10 @@ PINTORES.alumno=()=>{
     <div class="dosc" style="margin-top:10px">
       <button class="btn chico" style="width:auto" onclick="editarAlumno('${a.id}')">✏️ Modificar</button>
       <button class="btn chico" style="width:auto" onclick="verFotoGrande('${a.id}')">📷 Foto</button>
+    </div>
+    <div class="dosc" style="margin-top:7px">
+      <button class="btn chico" style="width:auto" onclick="mensajePara(porId(D.alumnos,'${a.id}'))">💬 Mensaje</button>
+      <button class="btn chico" style="width:auto" onclick="abrirInforme(infReportePadres(porId(D.alumnos,'${a.id}')))">📈 Reporte</button>
     </div>
     <div class="dosc" style="margin-top:7px">
       <button class="btn chico" style="width:auto" onclick="menuDocsAlumno('${a.id}')">📄 Documentos</button>
@@ -2037,6 +2081,7 @@ function guardarAlumno(id,otroMas){
     grupoId:$('al-grupo').value, desde:$('al-desde').value||hoyISO(),
     cinturonId:$('al-cint').value, dias, talla:$('al-talla').value,
     estadoAl, activo: estadoAl!=='baja',
+    baja: estadoAl==='baja' ? ((porId(D.alumnos,id)||{}).baja || hoyISO()) : '',
     inscMonto: leerPlata('al-insc'),
     inscFecha: $('al-inscf').value||'', inscUniforme: $('al-inscuni').checked,
     frecuencia: $('al-frec').value,
@@ -2459,6 +2504,8 @@ function menuDocsAlumno(id){
   hoja('Documentos de '+nombreCorto(a),`
    <button class="btn" onclick="verWaiver('${id}')">📄 Permiso y liberación (con sus datos)</button>
    <button class="btn" style="margin-top:7px" onclick="verFichaInscripcion('${id}')">📋 Ficha de inscripción</button>
+   <button class="btn" style="margin-top:7px" onclick="certificadoDe('${id}')">🏅 Certificado de grado</button>
+   <button class="btn" style="margin-top:7px" onclick="abrirInforme(infReportePadres(porId(D.alumnos,'${id}')))">📈 Reporte para los padres</button>
    <button class="btn pri" style="margin-top:7px" onclick="cerrarHoja();firmarWaiver('${id}')">✍️ Firmar aquí en la app</button>
    ${a.firma&&a.firma.trazo?`<div class="card" style="margin-top:10px"><div class="hd">Firma guardada</div>
      <img src="${a.firma.trazo}" style="width:100%;background:#fff;border-radius:8px">
@@ -2983,6 +3030,8 @@ PINTORES.imprimir=()=>{
     ${als.length?`
       ${bt('📋 Expediente completo',"abrirInforme(infExpediente(porId(D.alumnos,IMP_ALUMNO)))")}
       ${bt('💵 Historial de pagos',"abrirInforme(infPagosAlumno(porId(D.alumnos,IMP_ALUMNO)))")}
+      ${bt('📈 Reporte para los padres',"abrirInforme(infReportePadres(porId(D.alumnos,IMP_ALUMNO)))")}
+      ${bt('🏅 Certificado de grado',"certificadoDe(IMP_ALUMNO)")}
       ${bt('📄 Permiso / waiver (imprimir)',"verWaiver(IMP_ALUMNO)")}
       ${bt('📝 Ficha de inscripción (imprimir)',"verFichaInscripcion(IMP_ALUMNO)")}
     `:'<div class="vacio-msj">Todavía no hay alumnos.</div>'}
@@ -2992,20 +3041,23 @@ PINTORES.imprimir=()=>{
     ${bt('📊 Resumen del dojo',"abrirInforme(infResumenDojo())")}
     ${bt('📇 Directorio de alumnos',"abrirInforme(infDirectorio())")}
     ${bt('🚑 Contactos de emergencia',"abrirInforme(infEmergencia())")}
-    ${bt('✓ Asistencia de este mes',"abrirInforme(infAsistencia())")}
+    ${bt(ICO.lista+' Asistencia de este mes',"abrirInforme(infAsistencia())")}
     ${bt('💵 Cuotas de este mes',"abrirInforme(infCuotasMes())")}
     ${bt('📅 Cuotas del año',"abrirInforme(infCuotasAnio())")}
     ${bt('🥋 Cinturones y técnicas',"abrirInforme(infCinturones())")}
     ${bt('📋 Exámenes y resultados',"abrirInforme(infExamenes())")}
     ${bt('👨‍👩‍👧 Familias',"abrirInforme(infFamilias())")}
     ${bt('🕕 Grupos y horarios',"abrirInforme(infGrupos())")}
+    ${bt('🎯 Prospectos',"abrirInforme(infProspectos())")}
+    ${bt('🛒 Ventas e inventario',"abrirInforme(infTienda())")}
+    ${bt('📈 Cómo se mueve el dojo',"abrirInforme(infRetencion())")}
     ${bt('📓 Bitácora',"abrirInforme(infBitacora())")}
     ${bt('📖 Manual de uso completo',"imprimirManual()")}
   </div>
 
   <div class="card"><div class="hd">📄 En blanco, para llenar a mano</div>
     ${bt('📋 Expediente en blanco',"abrirInforme(infExpediente(null))")}
-    ${bt('✓ Hoja de asistencia en blanco',"abrirInforme(infAsistenciaBlanco())")}
+    ${bt(ICO.lista+' Hoja de asistencia en blanco',"abrirInforme(infAsistenciaBlanco())")}
     ${bt('📋 Planilla de examen en blanco',"abrirInforme(infExamenBlanco())")}
     ${bt('📄 Permiso / waiver en blanco',"verWaiver('')")}
     ${bt('📝 Ficha de inscripción en blanco',"verFichaInscripcion('')")}
@@ -3019,8 +3071,539 @@ PINTORES.imprimir=()=>{
   </div>`;
 };
 
+/* ═══════════════ 1 · PROSPECTOS Y CLASE DE PRUEBA ═══════════════ */
+const ETAPAS=[['interesado','Interesado','#3f5a6b'],['prueba','Clase de prueba','#8a6a1f'],
+              ['inscrito','Se inscribió','#1f6b4a'],['perdido','No siguió','#5a3a35']];
+function prospectos(){ D.prospectos=D.prospectos||[]; return D.prospectos; }
+function etapaDe(v){ return ETAPAS.find(e=>e[0]===v)||ETAPAS[0]; }
+function diasDesde(iso){ return iso? diasEntre(iso,hoyISO()) : null; }
+
+PINTORES.prospectos=()=>{
+  const P=prospectos();
+  const cuenta=v=>P.filter(p=>p.estado===v).length;
+  const abiertos=P.filter(p=>p.estado==='interesado'||p.estado==='prueba')
+    .sort((a,b)=>String(b.fecha||'').localeCompare(a.fecha||''));
+  const cerrados=P.filter(p=>p.estado==='inscrito'||p.estado==='perdido')
+    .sort((a,b)=>String(b.fecha||'').localeCompare(a.fecha||''));
+  const conv = (cuenta('inscrito')+cuenta('perdido'))
+    ? Math.round(cuenta('inscrito')/(cuenta('inscrito')+cuenta('perdido'))*100) : 0;
+  $('v-prospectos').innerHTML=`
+  <div class="card"><div class="hd">🎯 Prospectos</div>
+    <div class="mini">Gente que preguntó o vino a probar. Aquí es donde nacen los alumnos nuevos.</div>
+    <div class="embudo">${ETAPAS.map(([v,t,c])=>`<div class="paso" style="border-color:${c}">
+      <div class="num">${cuenta(v)}</div><div class="et">${t}</div></div>`).join('')}</div>
+    <div class="fila"><span class="gris">De los que se decidieron, se quedaron</span>
+      <span class="mono ${conv>=50?'verde':'ambar'}"><b>${conv}%</b></span></div>
+    <button class="btn pri" style="margin-top:9px" onclick="editarProspecto()">➕ Agregar prospecto</button>
+  </div>
+  <div class="card"><div class="hd">En proceso (${abiertos.length})</div>
+    ${abiertos.length? abiertos.map(p=>filaProspecto(p)).join('')
+      :'<div class="vacio-msj">Nadie en proceso ahora mismo.</div>'}
+  </div>
+  ${cerrados.length?`<div class="card"><div class="hd">Ya se decidieron (${cerrados.length})</div>
+    ${cerrados.slice(0,25).map(p=>filaProspecto(p)).join('')}</div>`:''}`;
+};
+function filaProspecto(p){
+  const e=etapaDe(p.estado);
+  const d=diasDesde(p.fecha);
+  const frio = (p.estado==='interesado'||p.estado==='prueba') && d!==null && d>7;
+  return `<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+    onclick="editarProspecto('${p.id}')">
+    <div class="izq"><div class="n1">${esc(p.nombre||'(sin nombre)')}
+      ${frio?'<span class="chip r">se está enfriando</span>':''}</div>
+      <div class="n2"><span class="chip" style="background:${e[2]};color:#fff">${e[1]}</span>
+        ${p.tel?' · '+esc(p.tel):''}${d!==null?' · hace '+d+' día'+(d===1?'':'s'):''}</div>
+      ${p.nota?`<div class="mini">${esc(p.nota)}</div>`:''}</div>
+    <span class="fl gris">›</span></button>`;
+}
+function editarProspecto(id){
+  const P=prospectos();
+  const p=id? P.find(x=>x.id===id) : {id:'',nombre:'',tel:'',correo:'',estado:'interesado',
+    fecha:hoyISO(), fechaPrueba:'', edad:'', comoLlego:'', nota:''};
+  hoja(id?'Prospecto':'Nuevo prospecto',`
+   <div class="campo"><label>Nombre</label><input id="pr-nom" value="${esc(p.nombre||'')}"></div>
+   <div class="dosc">
+     <div class="campo"><label>Teléfono</label><input type="tel" id="pr-tel" value="${esc(p.tel||'')}"></div>
+     <div class="campo"><label>Edad</label><input inputmode="numeric" id="pr-edad" value="${esc(p.edad||'')}"></div>
+   </div>
+   <div class="campo"><label>Correo</label><input type="email" id="pr-correo" value="${esc(p.correo||'')}"></div>
+   <div class="campo"><label>¿Cómo llegó?</label>
+     ${selectorHTML('pr-como',p.comoLlego||'',['Pasó por el frente','Lo recomendó un alumno','Facebook',
+       'Instagram','Google','Volante','Un familiar del dojo','Otro'],'Escoge…')}</div>
+   <div class="campo"><label>En qué va</label>
+     <select id="pr-estado">${ETAPAS.map(([v,t])=>`<option value="${v}"${v===p.estado?' selected':''}>${t}</option>`).join('')}</select></div>
+   <div class="dosc">
+     <div class="campo"><label>Primer contacto</label><input type="date" id="pr-fecha" value="${p.fecha||hoyISO()}"></div>
+     <div class="campo"><label>Clase de prueba</label><input type="date" id="pr-prueba" value="${p.fechaPrueba||''}"></div>
+   </div>
+   <div class="campo"><label>Nota</label><textarea id="pr-nota" rows="2">${esc(p.nota||'')}</textarea></div>
+   ${p.tel?`<button class="btn" style="margin-top:8px" onclick="mensajePara({nombre:${JSON.stringify(p.nombre||'')},tel:${JSON.stringify(p.tel)}},'prospecto')">💬 Escribirle por WhatsApp</button>`:''}
+   <button class="btn pri" style="margin-top:10px" onclick="guardarProspecto('${id||''}')">Guardar</button>
+   ${id?`<button class="btn" style="margin-top:8px" onclick="pasarAAlumno('${id}')">🥋 Convertirlo en alumno</button>
+     <button class="btn peligro" style="margin-top:8px" onclick="borrarProspecto('${id}')">🗑️ Borrar</button>`:''}`);
+}
+function guardarProspecto(id){
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['pr-nom','Nombre']]))) return;
+  const o={nombre:$('pr-nom').value.trim(), tel:$('pr-tel').value.trim(),
+    edad:$('pr-edad').value.trim(), correo:$('pr-correo').value.trim(),
+    comoLlego:($('pr-como')||{}).value||'', estado:$('pr-estado').value,
+    fecha:$('pr-fecha').value||hoyISO(), fechaPrueba:$('pr-prueba').value||'',
+    nota:$('pr-nota').value.trim()};
+  const P=prospectos();
+  if(id){ Object.assign(P.find(x=>x.id===id),o); log('Modificó al prospecto '+o.nombre); }
+  else { P.push({id:uid(),...o}); log('Agregó al prospecto '+o.nombre); }
+  if(!guardar()) return;
+  sonOK(); cerrarHoja(); toast('Guardado'); ir('prospectos');
+}
+function borrarProspecto(id){
+  const p=prospectos().find(x=>x.id===id);
+  confirmarBorrar('¿Borrar a '+(p.nombre||'este prospecto')+'?',[],()=>{
+    D.prospectos=prospectos().filter(x=>x.id!==id);
+    log('Borró al prospecto '+p.nombre); guardar(); cerrarHoja(); toast('Borrado'); ir('prospectos');
+  });
+}
+function pasarAAlumno(id){
+  const p=prospectos().find(x=>x.id===id);
+  p.estado='inscrito'; guardar();
+  cerrarHoja(); sonOK();
+  toast('Ahora llena su ficha');
+  setTimeout(()=>{ editarAlumno();
+    setTimeout(()=>{ if($('al-nom')){ const par=(p.nombre||'').trim().split(/\s+/);
+      $('al-nom').value=par[0]||''; if(par[1]) $('al-ape').value=par[1];
+      if($('al-tel')) $('al-tel').value=p.tel||''; if($('al-correo')) $('al-correo').value=p.correo||''; } },150);
+  },200);
+}
+
+/* ═══════════════ 2 · KIOSCO DE ENTRADA ═══════════════ */
+let KIOSCO_GRUPO='';
+function abrirKiosco(){
+  KIOSCO_GRUPO=(D.grupos[0]||{}).id||'';
+  document.body.classList.add('en-kiosco');
+  pintarKiosco();
+}
+async function salirKiosco(){
+  const c=prompt('Clave del maestro para salir del kiosco:');
+  if(c===null) return;
+  if(await hash(c,D.clave.sal)!==D.clave.h){ sonError(); alert('Clave incorrecta.'); return; }
+  document.body.classList.remove('en-kiosco');
+  $('kiosco').innerHTML=''; pintar();
+}
+function pintarKiosco(){
+  const g=porId(D.grupos,KIOSCO_GRUPO);
+  const hoy=hoyISO();
+  const ses=D.asistencia.find(s=>s.fecha===hoy && s.grupoId===KIOSCO_GRUPO);
+  const marcados=(ses&&ses.presentes)||[];
+  const als=alumnosDeGrupo(KIOSCO_GRUPO).filter(a=>a.estadoAl!=='baja');
+  $('kiosco').innerHTML=`
+   <div class="k-top">
+     <div class="k-tit">${esc(nombreEscuela())}</div>
+     <div class="k-sub">${esc(g?g.nombre:'')} · ${fLarga(hoy)} · <b>${marcados.length}</b> de ${als.length}</div>
+     <div class="k-grupos">${D.grupos.filter(x=>x.activo!==false).map(x=>
+       `<button class="btn chico ${x.id===KIOSCO_GRUPO?'pri':''}" style="width:auto"
+         onclick="KIOSCO_GRUPO='${x.id}';pintarKiosco()">${esc(x.nombre)}</button>`).join('')}</div>
+   </div>
+   <div class="k-rejilla">
+     ${als.length? als.map(a=>{ const si=marcados.includes(a.id);
+       return `<button class="k-cara${si?' si':''}" onclick="kioscoTocar('${a.id}')">
+         <div class="k-foto" style="${a.foto?`background-image:url(${a.foto})`:''}">${a.foto?'':CARA_VACIA}</div>
+         <div class="k-nom">${esc(nombreCorto(a))}</div>
+         ${si?'<div class="k-ok">✓ presente</div>':''}</button>`;}).join('')
+       :'<div class="vacio-msj">Este grupo no tiene alumnos.</div>'}
+   </div>
+   <button class="k-salir" onclick="salirKiosco()">🔒 Salir del kiosco</button>`;
+}
+function kioscoTocar(alumnoId){
+  const hoy=hoyISO();
+  let ses=D.asistencia.find(s=>s.fecha===hoy && s.grupoId===KIOSCO_GRUPO);
+  if(!ses){ ses={id:uid(),grupoId:KIOSCO_GRUPO,fecha:hoy,presentes:[]}; D.asistencia.push(ses); }
+  ses.presentes=ses.presentes||[];
+  const i=ses.presentes.indexOf(alumnoId);
+  if(i>=0){ ses.presentes.splice(i,1); sonError(); }
+  else { ses.presentes.push(alumnoId); sonOK(); }
+  guardar(); pintarKiosco();
+}
+
+/* ═══════════════ 3 · MENSAJES POR WHATSAPP ═══════════════ */
+function soloNumeros(t){ return String(t||'').replace(/\D/g,''); }
+function linkWhats(tel,texto){
+  let n=soloNumeros(tel);
+  if(n.length===10) n='1'+n;              /* Estados Unidos */
+  return 'https://wa.me/'+n+'?text='+encodeURIComponent(texto);
+}
+function plantillasPara(a,tipo){
+  const dojo=nombreEscuela();
+  const nom=nombreCorto(a)||a.nombre||'';
+  const mk=mesActual();
+  const debe=a.id?debeDelMes(a,mk):0;
+  const L=[];
+  if(tipo==='prospecto'){
+    L.push(['Invitarlo a la clase de prueba',
+      `Hola ${nom}, le saluda ${dojo}. Con mucho gusto lo esperamos para su clase de prueba, es gratis y sin compromiso. ¿Qué día le queda mejor?`]);
+    L.push(['Recordarle la clase de prueba',
+      `Hola ${nom}, le recuerdo su clase de prueba en ${dojo}. Traiga ropa cómoda, del uniforme nos encargamos después. ¡Lo esperamos!`]);
+    L.push(['Seguimiento después de la prueba',
+      `Hola ${nom}, ¿qué le pareció la clase? Si quiere seguir entrenando con nosotros, con gusto le explico los horarios y las cuotas.`]);
+    return L;
+  }
+  if(debe>0) L.push(['Cuota pendiente',
+    `Hola, le saluda ${dojo}. Le recuerdo que la cuota de ${nom} correspondiente a ${mesBonito(mk)} está pendiente: ${money(debe)}. Gracias.`]);
+  const d=diasParaCumple(a.nacim);
+  if(d!==null && d<=7) L.push(['Felicitación de cumpleaños',
+    `¡Felicidades ${nom}! Todo el ${dojo} le desea un feliz cumpleaños. ¡Osu!`]);
+  const u=ultimaClase(a.id), dd=u?diasEntre(u,hoyISO()):null;
+  if(dd!==null && dd>=10) L.push(['Hace días que no viene',
+    `Hola, le saluda ${dojo}. Notamos que ${nom} no ha venido a clases desde hace ${dd} días. ¿Está todo bien? Lo extrañamos en el tatami.`]);
+  const e=a.id?elegibilidad(a):null;
+  if(e&&e.listo) L.push(['Ya está listo para examen',
+    `Hola, le saluda ${dojo}. ${nom} ya cumplió los requisitos para presentarse a examen de grado. Le aviso la fecha en cuanto la tengamos.`]);
+  if(!(a.firma&&a.firma.trazo)) L.push(['Falta firmar el permiso',
+    `Hola, le saluda ${dojo}. Nos falta el permiso de participación firmado de ${nom}. ¿Puede pasar unos minutos antes de la próxima clase para firmarlo?`]);
+  L.push(['Recordatorio de clase',
+    `Hola, le saluda ${dojo}. Le recuerdo que ${nom} tiene clase hoy. ¡Lo esperamos!`]);
+  L.push(['Escribir yo el mensaje','']);
+  return L;
+}
+function mensajePara(a,tipo){
+  const tel = a.tel || telDeAviso(a) || '';
+  const L=plantillasPara(a,tipo);
+  hoja('Mensaje para '+(nombreCorto(a)||a.nombre||''),`
+   ${tel?`<div class="mini" style="margin-bottom:9px">Se le manda a <b>${esc(tel)}</b>.
+     El mensaje se abre ya escrito en WhatsApp; tú solo le das a enviar.</div>`
+     :'<div class="nota al">No tiene teléfono guardado.</div>'}
+   ${L.map((x,i)=>`<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+     onclick="mandarWhats('${esc(tel)}',${i},${JSON.stringify(JSON.stringify(L))})">
+     <div class="izq"><div class="n1">${esc(x[0])}</div>
+       ${x[1]?`<div class="mini">${esc(x[1].slice(0,95))}${x[1].length>95?'…':''}</div>`:''}</div>
+     <span class="fl gris">›</span></button>`).join('')}`);
+}
+function mandarWhats(tel,i,lista){
+  const L=JSON.parse(lista);
+  let txt=L[i][1];
+  if(!txt){ txt=prompt('Escribe el mensaje:'); if(!txt) return; }
+  if(!tel){ toast('No tiene teléfono guardado.'); return; }
+  log('Mandó un mensaje: '+L[i][0]);
+  guardar();
+  window.open(linkWhats(tel,txt),'_blank');
+  cerrarHoja();
+}
+
+/* ═══════════════ 4 · CERTIFICADO DE GRADO ═══════════════ */
+function certificadoDe(alumnoId, cintId, fecha){
+  const a=porId(D.alumnos,alumnoId); if(!a) return;
+  const c=cintId?porId(D.cinturones,cintId):cintDe(a);
+  const g=c?gradoPensum(c.kyuId):null;
+  const f=fecha||hoyISO();
+  const logo=getComputedStyle(document.documentElement).getPropertyValue('--logo').trim().replace(/^url\(|\)$/g,'');
+  const h=`<div class="cert">
+    ${logo?`<img class="cert-logo" src="${logo}">`:''}
+    <div class="cert-dojo">${esc(nombreEscuela())}</div>
+    <div class="cert-est">GOJU RYU KARATE DO · OKINAWA</div>
+    <div class="cert-tit">CERTIFICADO DE GRADO</div>
+    <div class="cert-tx">Por medio del presente se hace constar que</div>
+    <div class="cert-nom">${esc(nombreAlumno(a))}</div>
+    <div class="cert-tx">habiendo cumplido con los requisitos del pénsum de la escuela
+      y aprobado satisfactoriamente su examen de grado, ha alcanzado el rango de</div>
+    <div class="cert-grado">${esc(c?c.nombre:'')}</div>
+    ${g&&g.kyu?`<div class="cert-kyu">${esc(g.kyu)}</div>`:''}
+    <div class="cert-tx">Otorgado en Providence, Rhode Island, el ${fechaLarga(f)}.</div>
+    <div class="cert-firmas">
+      <div class="cert-linea">Sensei · Instructor a cargo</div>
+      <div class="cert-linea">Fecha</div>
+    </div></div>`;
+  const estilo=`<style>
+    @page{size:letter landscape;margin:0.4in}
+    body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a}
+    .cert{border:9px double #8a1c14;padding:26px 34px;text-align:center;max-width:9.6in;margin:0 auto}
+    .cert-logo{width:96px;height:96px;object-fit:contain}
+    .cert-dojo{font-size:22pt;font-weight:bold;color:#8a1c14;letter-spacing:1.5px;margin-top:6px}
+    .cert-est{font-size:10.5pt;letter-spacing:3px;color:#666;margin-bottom:14px}
+    .cert-tit{font-size:16pt;letter-spacing:5px;margin:12px 0 16px;color:#333}
+    .cert-tx{font-size:12.5pt;margin:8px 0}
+    .cert-nom{font-size:26pt;font-weight:bold;margin:10px 0;border-bottom:1.5px solid #999;
+      display:inline-block;padding:0 40px 4px}
+    .cert-grado{font-size:20pt;font-weight:bold;color:#8a1c14;margin:12px 0 2px}
+    .cert-kyu{font-size:13pt;color:#555;margin-bottom:10px}
+    .cert-firmas{display:flex;gap:60px;justify-content:center;margin-top:38px}
+    .cert-linea{border-top:1px solid #333;padding-top:5px;font-size:10.5pt;min-width:2.6in}
+    @media screen{body{background:#fff;padding:18px}}
+    </style>`;
+  const w=window.open('','_blank');
+  if(!w){ alert('El teléfono bloqueó la ventana. Permite las ventanas emergentes.'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+    <title>Certificado · ${esc(nombreAlumno(a))}</title>${estilo}</head><body>${h}
+    <div class="noimp" style="text-align:center;margin-top:16px">
+      <button onclick="window.print()" style="font:14px system-ui;padding:10px 22px;background:#8a1c14;color:#fff;border:0;border-radius:8px">🖨️ Imprimir</button>
+    </div><style>@media print{.noimp{display:none}}</style></body></html>`);
+  w.document.close();
+}
+
+/* ═══════════════ 5 · REPORTE PARA LOS PADRES ═══════════════ */
+function infReportePadres(a,mk){
+  mk=mk||mesActual();
+  const c=cintDe(a), e=elegibilidad(a);
+  const ses=D.asistencia.filter(s=>String(s.fecha).slice(0,7)===mk);
+  const vino=ses.filter(s=>(s.presentes||[]).includes(a.id)).length;
+  const suyas=ses.filter(s=>s.grupoId===a.grupoId).length;
+  const reqs=e.sig?requisitosDeCinturon(e.sig):[];
+  const hechas=reqs.filter(r=>(a.tecnicas||[]).includes(r.id));
+  const faltan=reqs.filter(r=>!(a.tecnicas||[]).includes(r.id));
+  return {titulo:'Reporte de '+nombreAlumno(a), subtitulo:mesBonito(mk)+' · para la familia',
+   secciones:[
+    ...(a.foto?[{t:'foto',datos:a.foto}]:[]),
+    {t:'campos',tit:'Cómo va este mes',pares:[
+      ['Grado actual', c?nombreGrado(c):''],
+      ['Clases a las que vino', vino+' de '+suyas],
+      ['Clases en total con este grado', e.clases],
+      ['Meses con este grado', e.meses],
+      ['Próximo grado', e.sig?e.sig.nombre:'—'],
+      ['¿Listo para examen?', e.sig? (e.listo?'SÍ, ya cumplió todo':'Todavía no') : '—'],
+    ]},
+    {t:'campos',tit:'Lo que le falta para el próximo grado',pares:[
+      ['Clases que le faltan', e.faltanClases],
+      ['Meses que le faltan', e.faltanMeses],
+      ['Requisitos que le faltan', e.faltanTec+' de '+e.tot],
+    ]},
+    {t:'tabla',tit:'Requisitos que ya domina',cab:['Requisito'],
+     filas: hechas.length? hechas.map(r=>[r.t]) : [['Todavía ninguno de este grado']]},
+    {t:'tabla',tit:'En lo que está trabajando',cab:['Requisito'],
+     filas: faltan.length? faltan.slice(0,20).map(r=>[r.t]) : [['Ya los tiene todos']]},
+    {t:'texto',tit:'Nota del instructor',
+     parrafos:[a.nota||'____________________________________________________________']},
+    {t:'firma',etiquetas:['Firma del instructor','Fecha']}]};
+}
+
+/* ═══════════════ 6 · PANEL DE RETENCIÓN ═══════════════ */
+function mesesAtras(n){
+  const out=[]; const d=new Date();
+  for(let i=n-1;i>=0;i--){ const x=new Date(d.getFullYear(),d.getMonth()-i,1);
+    out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')); }
+  return out;
+}
+function retencionMes(mk){
+  const entraron=D.alumnos.filter(a=>a.desde&&String(a.desde).slice(0,7)===mk).length;
+  const salieron=D.alumnos.filter(a=>a.estadoAl==='baja'&&a.baja&&String(a.baja).slice(0,7)===mk).length;
+  const activos=D.alumnos.filter(a=>{
+    if(a.desde && String(a.desde).slice(0,7)>mk) return false;
+    if(a.estadoAl==='baja' && a.baja && String(a.baja).slice(0,7)<=mk) return false;
+    return true;}).length;
+  const ses=D.asistencia.filter(s=>String(s.fecha).slice(0,7)===mk).length;
+  return {mk,entraron,salieron,activos,ses,cobrado:cobradoDelMes(mk),esperado:esperadoDelMes(mk)};
+}
+PINTORES.retencion=()=>{
+  const meses=mesesAtras(6).map(retencionMes);
+  const hoy=meses[meses.length-1];
+  const maxA=Math.max(1,...meses.map(m=>m.activos));
+  const ingreso=alumnosActivos().reduce((s,a)=>s+cuotaDe(a,mesActual()),0);
+  const riesgo=alumnosActivos().map(a=>{
+    const u=ultimaClase(a.id); const d=u?diasEntre(u,hoyISO()):null;
+    return {a,d,nunca:!u};}).filter(x=>x.nunca||x.d>=10)
+    .sort((x,y)=>(y.d||999)-(x.d||999));
+  $('v-retencion').innerHTML=`
+  <div class="card"><div class="hd">📈 Cómo se mueve el dojo</div>
+    <div class="fila"><span class="gris">Alumnos activos hoy</span><span class="mono"><b>${hoy.activos}</b></span></div>
+    <div class="fila"><span class="gris">Entraron este mes</span><span class="mono verde">+${hoy.entraron}</span></div>
+    <div class="fila"><span class="gris">Se fueron este mes</span><span class="mono ${hoy.salieron?'rojo':'gris'}">−${hoy.salieron}</span></div>
+    <div class="fila"><span class="gris">Ingreso que se repite cada mes</span><span class="mono"><b>${money(ingreso)}</b></span></div>
+    <div class="fila"><span class="gris">Cobrado este mes</span><span class="mono">${money(hoy.cobrado)} de ${money(hoy.esperado)}</span></div>
+  </div>
+  <div class="card"><div class="hd">Los últimos 6 meses</div>
+    ${meses.map(m=>`<div class="mesfila">
+      <div class="mesnom">${esc(mesBonito(m.mk).slice(0,3))}</div>
+      <div class="mesbarra"><i style="width:${Math.round(m.activos/maxA*100)}%"></i>
+        <b>${m.activos}</b></div>
+      <div class="mesmov"><span class="verde">+${m.entraron}</span> <span class="${m.salieron?'rojo':'gris'}">−${m.salieron}</span></div>
+      <div class="mono mini">${money(m.cobrado)}</div>
+    </div>`).join('')}
+    <div class="mini" style="margin-top:8px">La barra es cuántos alumnos activos había cada mes.</div>
+  </div>
+  <div class="card"><div class="hd">⚠️ En riesgo de irse (${riesgo.length})</div>
+    ${riesgo.length? riesgo.slice(0,12).map(x=>`<div class="fila">
+      <div class="izq"><div class="n1">${esc(nombreAlumno(x.a))}</div>
+        <div class="n2">${x.nunca?'nunca ha venido':'no viene hace '+x.d+' días'}</div></div>
+      <button class="btn chico" style="width:auto" onclick="mensajePara(porId(D.alumnos,'${x.a.id}'))">💬</button>
+    </div>`).join('') : '<div class="nota ok">✅ Todos vienen seguido.</div>'}
+  </div>`;
+};
+
+/* ═══════════════ 7 · TIENDA E INVENTARIO ═══════════════ */
+function productos(){ D.productos=D.productos||[]; return D.productos; }
+function ventas(){ D.ventas=D.ventas||[]; return D.ventas; }
+function ventasDelMes(mk){ return ventas().filter(v=>String(v.fecha).slice(0,7)===mk); }
+function totalVentas(mk){ return n2(ventasDelMes(mk).reduce((s,v)=>s+n2(v.total),0)); }
+function gananciaVentas(mk){ return n2(ventasDelMes(mk).reduce((s,v)=>s+n2(v.total)-n2(v.costo||0)*v.cant,0)); }
+function valorInventario(){ return n2(productos().reduce((s,p)=>s+n2(p.costo)*Number(p.cant||0),0)); }
+
+PINTORES.tienda=()=>{
+  const mk=mesActual();
+  const bajos=productos().filter(p=>Number(p.cant||0)<=Number(p.minimo||2));
+  $('v-tienda').innerHTML=`
+  <div class="card"><div class="hd">🛒 Tienda del dojo</div>
+    <div class="fila"><span class="gris">Vendido en ${mesBonito(mk)}</span><span class="mono"><b>${money(totalVentas(mk))}</b></span></div>
+    <div class="fila"><span class="gris">Ganancia del mes</span><span class="mono verde">${money(gananciaVentas(mk))}</span></div>
+    <div class="fila"><span class="gris">Lo que tienes guardado vale</span><span class="mono">${money(valorInventario())}</span></div>
+    <button class="btn pri" style="margin-top:9px" onclick="registrarVenta()">💵 Anotar una venta</button>
+    <button class="btn" style="margin-top:7px" onclick="editarProducto()">➕ Agregar producto</button>
+  </div>
+  ${bajos.length?`<div class="nota al">⚠️ Se están acabando:
+    ${bajos.map(p=>esc(p.nombre)+(p.talla?' '+esc(p.talla):'')+' ('+(p.cant||0)+')').join(' · ')}</div>`:''}
+  <div class="card"><div class="hd">Lo que tienes (${productos().length})</div>
+    ${productos().length? productos().map(p=>`<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+      onclick="editarProducto('${p.id}')">
+      <div class="izq"><div class="n1">${esc(p.nombre)}${p.talla?' · talla '+esc(p.talla):''}</div>
+        <div class="n2">Quedan <b>${p.cant||0}</b> · cuesta ${money(p.costo)} · se vende en ${money(p.precio)}</div></div>
+      <span class="fl gris">›</span></button>`).join('')
+      :'<div class="vacio-msj">Todavía no has agregado productos.</div>'}
+  </div>
+  <div class="card"><div class="hd">Ventas de ${mesBonito(mk)} (${ventasDelMes(mk).length})</div>
+    ${ventasDelMes(mk).length? ventasDelMes(mk).slice().reverse().map(v=>{
+      const a=porId(D.alumnos,v.alumnoId);
+      return `<div class="fila"><div class="izq">
+        <div class="n1">${esc(v.nombre)} × ${v.cant}</div>
+        <div class="n2">${a?esc(nombreCorto(a)):'venta suelta'} · ${fCorta(v.fecha)}</div></div>
+        <span class="mono">${money(v.total)}</span></div>`;}).join('')
+      :'<div class="vacio-msj">Sin ventas este mes.</div>'}
+  </div>`;
+};
+function editarProducto(id){
+  const p=id? productos().find(x=>x.id===id) : {id:'',nombre:'',talla:'',costo:'',precio:'',cant:0,minimo:2};
+  hoja(id?'Producto':'Nuevo producto',`
+   <div class="campo"><label>Qué es</label><input id="pd-nom" value="${esc(p.nombre||'')}" placeholder="Uniforme, cinturón, protector…"></div>
+   <div class="campo"><label>Talla o detalle</label><input id="pd-talla" value="${esc(p.talla||'')}"></div>
+   <div class="dosc">
+     <div class="campo"><label>Lo que te cuesta</label>${campoPlata('pd-costo',p.costo,'0.00')}</div>
+     <div class="campo"><label>A cómo lo vendes</label>${campoPlata('pd-precio',p.precio,'0.00')}</div>
+   </div>
+   <div class="dosc">
+     <div class="campo"><label>Cuántos tienes</label><input inputmode="numeric" id="pd-cant" value="${p.cant||0}"></div>
+     <div class="campo"><label>Avísame cuando queden</label><input inputmode="numeric" id="pd-min" value="${p.minimo===undefined?2:p.minimo}"></div>
+   </div>
+   <button class="btn pri" style="margin-top:10px" onclick="guardarProducto('${id||''}')">Guardar</button>
+   ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarProducto('${id}')">🗑️ Borrar</button>`:''}`);
+}
+function guardarProducto(id){
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['pd-nom','Qué es']]))) return;
+  const o={nombre:$('pd-nom').value.trim(), talla:$('pd-talla').value.trim(),
+    costo:leerPlata('pd-costo')||0, precio:leerPlata('pd-precio')||0,
+    cant:Number($('pd-cant').value)||0, minimo:Number($('pd-min').value)||0};
+  if(id){ Object.assign(productos().find(x=>x.id===id),o); log('Modificó el producto '+o.nombre); }
+  else { productos().push({id:uid(),...o}); log('Agregó el producto '+o.nombre); }
+  if(!guardar()) return;
+  sonOK(); cerrarHoja(); toast('Guardado'); ir('tienda');
+}
+function borrarProducto(id){
+  const p=productos().find(x=>x.id===id);
+  confirmarBorrar('¿Borrar "'+p.nombre+'"?',['Las ventas ya anotadas se quedan como están'],()=>{
+    D.productos=productos().filter(x=>x.id!==id);
+    log('Borró el producto '+p.nombre); guardar(); cerrarHoja(); toast('Borrado'); ir('tienda');
+  });
+}
+function registrarVenta(){
+  if(!productos().length){ toast('Primero agrega un producto.'); return editarProducto(); }
+  hoja('Anotar una venta',`
+   <div class="campo"><label>Producto</label>
+     <select id="vt-prod" onchange="calcVenta()">
+       ${productos().map(p=>`<option value="${p.id}">${esc(p.nombre)}${p.talla?' · '+esc(p.talla):''} — quedan ${p.cant||0}</option>`).join('')}
+     </select></div>
+   <div class="dosc">
+     <div class="campo"><label>Cuántos</label><input inputmode="numeric" id="vt-cant" value="1" oninput="calcVenta()"></div>
+     <div class="campo"><label>Fecha</label><input type="date" id="vt-fecha" value="${hoyISO()}"></div>
+   </div>
+   <div class="campo"><label>¿A quién?</label>
+     <select id="vt-alumno"><option value="">— venta suelta —</option>
+       ${alumnosActivos().map(a=>`<option value="${a.id}">${esc(nombreAlumno(a))}</option>`).join('')}
+     </select></div>
+   <div class="campo"><label>Precio total (lo puedes cambiar)</label>${campoPlata('vt-total','','0.00')}</div>
+   <div class="calc" id="vt-calc"></div>
+   <button class="btn pri" style="margin-top:10px" onclick="guardarVenta()">Guardar la venta</button>`);
+  setTimeout(calcVenta,60);
+}
+function calcVenta(){
+  const p=productos().find(x=>x.id===$('vt-prod').value); if(!p) return;
+  const n=Math.max(1,Number($('vt-cant').value)||1);
+  const sug=n2(n2(p.precio)*n);
+  if($('vt-total') && !$('vt-total').dataset.tocado) $('vt-total').value=sug;
+  const total=leerPlata('vt-total')||sug;
+  const gan=n2(total-n2(p.costo)*n);
+  $('vt-calc').innerHTML=`
+    <div class="fila"><span class="gris">Precio de lista</span><span class="mono">${money(sug)}</span></div>
+    <div class="fila"><span class="gris">Te costó</span><span class="mono">${money(n2(p.costo)*n)}</span></div>
+    <div class="fila"><span><b>Ganancia</b></span><span class="mono ${gan>=0?'verde':'rojo'}"><b>${money(gan)}</b></span></div>
+    ${(p.cant||0)<n?'<div class="mini ambar">⚠️ Solo te quedan '+(p.cant||0)+' en existencia.</div>':''}`;
+}
+function guardarVenta(){
+  const p=productos().find(x=>x.id===$('vt-prod').value);
+  if(!p) return toast('Escoge un producto.');
+  const n=Math.max(1,Number($('vt-cant').value)||1);
+  const total=leerPlata('vt-total');
+  if(!(total>0)){ marcarMal('vt-total',true); return avisarFaltan([{id:'vt-total',etq:'El precio tiene que ser mayor que cero'}]); }
+  ventas().push({id:uid(), productoId:p.id, nombre:p.nombre+(p.talla?' · '+p.talla:''),
+    cant:n, total:n2(total), costo:n2(p.costo), alumnoId:$('vt-alumno').value||'',
+    fecha:$('vt-fecha').value||hoyISO()});
+  p.cant=Math.max(0,(Number(p.cant)||0)-n);
+  log('Vendió '+n+' × '+p.nombre+' por '+money(total));
+  if(!guardar()) return;
+  sonOK(); cerrarHoja(); toast('Venta anotada'); ir('tienda');
+}
+
+/* informes de lo nuevo */
+function infProspectos(){
+  const P=prospectos();
+  return {titulo:'Prospectos', subtitulo:P.length+' en total · '+fechaLarga(hoyISO()), secciones:[
+    {t:'campos',tit:'Resumen',pares:ETAPAS.map(([v,t])=>[t, P.filter(p=>p.estado===v).length])},
+    {t:'tabla',tit:'Todos',cab:['Nombre','Teléfono','Edad','Cómo llegó','En qué va','Primer contacto','Clase de prueba','Nota'],
+     filas: P.length? P.map(p=>[p.nombre,p.tel,p.edad,p.comoLlego,etapaDe(p.estado)[1],
+       p.fecha?fCorta(p.fecha):'', p.fechaPrueba?fCorta(p.fechaPrueba):'', p.nota]) : [['','','','','','','','']]}]};
+}
+function infTienda(){
+  const mk=mesActual();
+  return {titulo:'Tienda del dojo', subtitulo:mesBonito(mk), secciones:[
+    {t:'campos',tit:'Resumen del mes',pares:[
+      ['Vendido', money(totalVentas(mk))],
+      ['Ganancia', money(gananciaVentas(mk))],
+      ['Valor de lo que tienes guardado', money(valorInventario())],
+      ['Productos distintos', productos().length]]},
+    {t:'tabla',tit:'Inventario',cab:['Producto','Talla','Quedan','Te cuesta','Lo vendes en','Valor guardado'],
+     filas: productos().length? productos().map(p=>[p.nombre,p.talla,p.cant||0,money(p.costo),money(p.precio),
+       money(n2(p.costo)*Number(p.cant||0))]) : [['','','','','','']]},
+    {t:'tabla',tit:'Ventas del mes',cab:['Fecha','Producto','Cuántos','A quién','Total','Ganancia'],
+     filas: ventasDelMes(mk).length? ventasDelMes(mk).map(v=>{const a=porId(D.alumnos,v.alumnoId);
+       return [fCorta(v.fecha),v.nombre,v.cant,a?nombreCorto(a):'venta suelta',money(v.total),
+         money(n2(v.total)-n2(v.costo||0)*v.cant)];}) : [['','','','','','']]}]};
+}
+function infRetencion(){
+  const M=mesesAtras(12).map(retencionMes);
+  const ingreso=alumnosActivos().reduce((s,a)=>s+cuotaDe(a,mesActual()),0);
+  return {titulo:'Cómo se mueve el dojo', subtitulo:'Últimos 12 meses', secciones:[
+    {t:'campos',tit:'Hoy',pares:[
+      ['Alumnos activos', alumnosActivos().length],
+      ['Ingreso que se repite cada mes', money(ingreso)],
+      ['En pausa', D.alumnos.filter(a=>a.estadoAl==='pausa').length],
+      ['Dados de baja', D.alumnos.filter(a=>a.estadoAl==='baja').length]]},
+    {t:'tabla',tit:'Mes por mes',cab:['Mes','Activos','Entraron','Se fueron','Clases','Cobrado','Esperado'],
+     filas: M.map(m=>[mesBonito(m.mk),m.activos,m.entraron,m.salieron,m.ses,money(m.cobrado),money(m.esperado)])}]};
+}
+/* todos los certificados de un examen, uno por hoja */
+function certificadosDelExamen(exId){
+  const x=porId(D.examenes,exId);
+  const pasaron=(x.alumnos||[]).filter(al=>al.paso===true);
+  if(!pasaron.length){ toast('Nadie pasó este examen.'); return; }
+  if(pasaron.length===1){ certificadoDe(pasaron[0].alumnoId, pasaron[0].aId, x.fecha); return; }
+  hoja('Certificados de '+x.nombre,
+    `<div class="mini" style="margin-bottom:9px">${pasaron.length} alumnos pasaron. Toca a cada uno para su certificado.</div>`+
+    pasaron.map(al=>{ const a=porId(D.alumnos,al.alumnoId); if(!a) return '';
+      return `<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+        onclick="certificadoDe('${al.alumnoId}','${al.aId}','${x.fecha}')">
+        <div class="izq"><div class="n1">${esc(nombreAlumno(a))}</div>
+        <div class="n2">${esc((porId(D.cinturones,al.aId)||{}).nombre||'')}</div></div>
+        <span class="fl gris">🏅</span></button>`;}).join(''));
+}
+
 function archivarAlumno(id){
   const a=porId(D.alumnos,id); a.activo=a.activo===false;
+  a.estadoAl = a.activo ? 'activo' : 'baja';
+  if(!a.activo){ if(!a.baja) a.baja=hoyISO(); } else { a.baja=''; }
   log((a.activo?'Reactivó a ':'Marcó que se fue ')+nombreAlumno(a));
   guardar(); toast(a.activo?'Reactivado':'Marcado que se fue'); pintar();
 }
@@ -3462,7 +4045,8 @@ PINTORES.examen=()=>{
       </div>
     </div>`;}).join('')}
   ${!x.cerrado?`<button class="btn pri" onclick="cerrarExamen('${x.id}')">🏁 Terminar y promover a los que pasaron</button>`:
-    `<div class="nota ok">Este examen ya está terminado. Los que pasaron ya tienen su cinturón nuevo.</div>`}
+    `<div class="nota ok">Este examen ya está terminado. Los que pasaron ya tienen su cinturón nuevo.</div>
+     <button class="btn" style="margin-top:8px" onclick="certificadosDelExamen('${x.id}')">🏅 Imprimir los certificados</button>`}
   <button class="btn peligro" style="margin-top:8px" onclick="borrarExamen('${x.id}')">🗑️ Borrar examen</button>`;
 };
 function puntuar(exId,i,k,v){
