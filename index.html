@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260803j-DOJO-V4.0">
+<meta name="app-version" content="20260804a-DOJO-V4.1">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -427,7 +427,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260803j-DOJO-V4.0';
+const VERSION_APP='20260804a-DOJO-V4.1';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -724,9 +724,10 @@ function ir(v){
   if(v!==vistaActual){
     if(PILA[PILA.length-1]!==v) PILA.push(v);
     if(PILA.length>25) PILA=PILA.slice(-25);
+    if(NAV_LISTA) marcarPaso();
   }
   irSinPila(v);
-  if(v==='inicio') PILA=['inicio'];
+  if(v==='inicio'){ PILA=['inicio']; }
 }
 function pintar(){ if(PINTORES[vistaActual]) PINTORES[vistaActual]();
   try{ agrandarIconos(); }catch(e){} }
@@ -1371,22 +1372,36 @@ const sonPeligro = ()=>tono([440,330,440],0.17,0.26);       // vas a borrar
 
 /* =========================== BOTÓN DE ATRÁS =========================== */
 let PILA=['inicio'], SALIENDO=false, NAV_LISTA=false;
-function marcarPaso(){ try{ history.pushState({dojo:1},''); }catch(e){} }
+/* PASOS = cuántos escalones de historial tenemos guardados nosotros.
+   Siempre mantenemos un colchón, para que el botón de atrás del teléfono
+   NUNCA se quede sin escalón y cierre la app sin preguntar. */
+let PASOS=0;
+const COLCHON=3;
+function marcarPaso(){
+  try{ history.pushState({dojo:1,n:PASOS+1},''); PASOS++; }catch(e){}
+}
+function rellenarColchon(){
+  let guarda=0;
+  while(PASOS<COLCHON && guarda++<8) marcarPaso();
+}
 function iniciarNavegacion(){
   if(NAV_LISTA) return; NAV_LISTA=true;
-  marcarPaso();
+  rellenarColchon();
   window.addEventListener('popstate',()=>{
-    if(SALIENDO) return;                       // dejarlo salir de verdad
-    marcarPaso();                              // siempre volvemos a tener un paso
-    /* 1. lo que esté encima se cierra primero */
-    if($('capa-foto') && $('capa-foto').classList.contains('on')){ cerrarFoto(); return; }
-    if(document.querySelector('.drop.on')){ cerrarDrops(); return; }
-    if($('capa') && $('capa').classList.contains('on')){ cerrarHoja(); return; }
-    /* 2. si hay pantalla anterior, volvemos a ella */
-    if(PILA.length>1){ PILA.pop(); const v=PILA[PILA.length-1]; irSinPila(v); return; }
-    /* 3. estamos en Inicio: preguntamos */
+    if(SALIENDO) return;                 /* nos estamos yendo de verdad */
+    PASOS=Math.max(0,PASOS-1);
+    /* 1 · primero se cierra lo que esté encima */
+    if($('capa-foto') && $('capa-foto').classList.contains('on')){ cerrarFoto(); rellenarColchon(); return; }
+    if(document.querySelector('.drop.on')){ cerrarDrops(); rellenarColchon(); return; }
+    if($('capa') && $('capa').classList.contains('on')){ cerrarHoja(); rellenarColchon(); return; }
+    /* 2 · si hay pantalla anterior, volvemos a ella */
+    if(PILA.length>1){ PILA.pop(); irSinPila(PILA[PILA.length-1]); rellenarColchon(); return; }
+    /* 3 · estamos en Inicio: se pregunta, y NO se sale hasta que él diga */
+    rellenarColchon();
     preguntarSalir();
   });
+  /* si el teléfono nos deja sin colchón por lo que sea, lo reponemos */
+  setInterval(()=>{ if(NAV_LISTA && !SALIENDO && PASOS<2) rellenarColchon(); }, 4000);
 }
 function irSinPila(v){
   vistaActual=v;
@@ -1396,16 +1411,20 @@ function irSinPila(v){
   pintar(); window.scrollTo(0,0);
 }
 function preguntarSalir(){
+  if($('capa') && $('capa').classList.contains('on')) return;
   sonAlerta();
   hoja('¿Salir de la app?',`
    <div class="nota">Tus datos quedan guardados en este aparato. No se pierde nada.</div>
    <button class="btn peligro" style="margin-top:10px" onclick="salirDeVerdad()">Sí, salir</button>
-   <button class="btn pri" style="margin-top:8px" onclick="cerrarHoja()">Quedarme aquí</button>`);
+   <button class="btn pri" style="margin-top:8px" onclick="cerrarHoja();rellenarColchon()">Quedarme aquí</button>`);
 }
 function salirDeVerdad(){
   cerrarHoja(); SALIENDO=true;
-  try{ history.go(-2); }catch(e){}
-  setTimeout(()=>{ try{ window.close(); }catch(e){} SALIENDO=false; }, 400);
+  const n=PASOS+1;
+  try{ history.go(-n); }catch(e){}
+  setTimeout(()=>{ try{ window.close(); }catch(e){}
+    /* si el teléfono no dejó cerrar, seguimos como si nada */
+    SALIENDO=false; PASOS=0; rellenarColchon(); }, 600);
 }
 
 /* =========================== FALTAN DATOS =========================== */
