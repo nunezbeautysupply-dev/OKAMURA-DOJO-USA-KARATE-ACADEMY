@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260804a-DOJO-V4.1">
+<meta name="app-version" content="20260804b-DOJO-V4.2">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -427,7 +427,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260804a-DOJO-V4.1';
+const VERSION_APP='20260804b-DOJO-V4.2';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -740,7 +740,7 @@ function hoja(titulo,html,cb){
     <button class="icobtn" onclick="cerrarHoja()">✕</button></div>${html}`;
   $('capa').classList.add('on'); cerrarCb=cb||null; $('hoja').scrollTop=0;
 }
-function cerrarHoja(){ $('capa').classList.remove('on'); $('hoja').innerHTML=''; const c=cerrarCb; cerrarCb=null; if(c)c(); }
+function cerrarHoja(){ $('capa').classList.remove('on'); $('hoja').innerHTML=''; PREGUNTANDO=false; const c=cerrarCb; cerrarCb=null; if(c)c(); }
 
 /* ---------- cosas del dojo ---------- */
 function cintDe(a){ return porId(D.cinturones,a&&a.cinturonId) || D.cinturones[0] || null; }
@@ -1375,8 +1375,8 @@ let PILA=['inicio'], SALIENDO=false, NAV_LISTA=false;
 /* PASOS = cuántos escalones de historial tenemos guardados nosotros.
    Siempre mantenemos un colchón, para que el botón de atrás del teléfono
    NUNCA se quede sin escalón y cierre la app sin preguntar. */
-let PASOS=0;
-const COLCHON=3;
+let PASOS=0, PREGUNTANDO=false;
+const COLCHON=4;
 function marcarPaso(){
   try{ history.pushState({dojo:1,n:PASOS+1},''); PASOS++; }catch(e){}
 }
@@ -1390,6 +1390,8 @@ function iniciarNavegacion(){
   window.addEventListener('popstate',()=>{
     if(SALIENDO) return;                 /* nos estamos yendo de verdad */
     PASOS=Math.max(0,PASOS-1);
+    /* 0 · si está preguntando si salir, el atrás NO sale ni cierra: sigue preguntando */
+    if(PREGUNTANDO){ rellenarColchon(); return; }
     /* 1 · primero se cierra lo que esté encima */
     if($('capa-foto') && $('capa-foto').classList.contains('on')){ cerrarFoto(); rellenarColchon(); return; }
     if(document.querySelector('.drop.on')){ cerrarDrops(); rellenarColchon(); return; }
@@ -1411,20 +1413,48 @@ function irSinPila(v){
   pintar(); window.scrollTo(0,0);
 }
 function preguntarSalir(){
+  if(PREGUNTANDO) return;
   if($('capa') && $('capa').classList.contains('on')) return;
+  PREGUNTANDO=true;
   sonAlerta();
-  hoja('¿Salir de la app?',`
+  hoja('¿Cerrar la app?',`
    <div class="nota">Tus datos quedan guardados en este aparato. No se pierde nada.</div>
-   <button class="btn peligro" style="margin-top:10px" onclick="salirDeVerdad()">Sí, salir</button>
-   <button class="btn pri" style="margin-top:8px" onclick="cerrarHoja();rellenarColchon()">Quedarme aquí</button>`);
+   <button class="btn peligro" style="margin-top:10px" onclick="salirDeVerdad()">🔒 Sí, cerrar y bloquear</button>
+   <button class="btn pri" style="margin-top:8px" onclick="quedarseAqui()">Quedarme aquí</button>
+   <div class="mini" style="margin-top:10px">Al cerrar, la app queda bloqueada y te va a pedir
+     la clave la próxima vez. Para sacarla de la pantalla, usa el botón de aplicaciones recientes
+     de tu teléfono.</div>`);
 }
+function quedarseAqui(){ PREGUNTANDO=false; cerrarHoja(); rellenarColchon(); }
+/* Un teléfono NO deja que una app web se cierre sola. Lo que sí podemos
+   hacer, y es lo útil de verdad, es dejarla bloqueada y soltar el guardián
+   del botón de atrás para que el siguiente atrás la saque. */
 function salirDeVerdad(){
-  cerrarHoja(); SALIENDO=true;
-  const n=PASOS+1;
-  try{ history.go(-n); }catch(e){}
-  setTimeout(()=>{ try{ window.close(); }catch(e){}
-    /* si el teléfono no dejó cerrar, seguimos como si nada */
-    SALIENDO=false; PASOS=0; rellenarColchon(); }, 600);
+  PREGUNTANDO=false;
+  cerrarHoja();
+  bloquearApp();
+  rellenarColchon();
+  toast('App bloqueada');
+}
+function bloquearApp(){
+  try{
+    document.body.classList.remove('en-kiosco');
+    if($('kiosco')) $('kiosco').innerHTML='';
+    if($('capa')) $('capa').classList.remove('on');
+    if($('capa-foto')) $('capa-foto').classList.remove('on');
+    if($('capa-aviso')) $('capa-aviso').classList.remove('on');
+    $('app-contenido').style.display='none';
+    $('pantalla-login').style.display='block';
+    /* al bloquear hay que enseñar el bloque de "entrar", no el de "crear clave" */
+    if($('login-nuevo')) $('login-nuevo').style.display='none';
+    if($('login-entrar')) $('login-entrar').style.display='block';
+    if(D && D.config && D.config.huella && D.config.huella.activa && $('login-huella'))
+      $('login-huella').style.display='block';
+    if($('cl0')){ $('cl0').value=''; setTimeout(()=>{ try{$('cl0').focus();}catch(e){} },200); }
+    if(typeof msjLogin==='function') msjLogin('');
+    PILA=['inicio']; vistaActual='inicio';
+    log('Bloqueó la app');
+  }catch(e){}
 }
 
 /* =========================== FALTAN DATOS =========================== */
