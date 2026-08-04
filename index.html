@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260804d-DOJO-V4.4">
+<meta name="app-version" content="20260804g-DOJO-V4.7">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -400,6 +400,7 @@ body{background:#000}
   <div class="vista" id="v-documentos"></div>
   <div class="vista" id="v-pensum"></div>
   <div class="vista" id="v-prospectos"></div>
+  <div class="vista" id="v-mensajes"></div>
   <div class="vista" id="v-retencion"></div>
   <div class="vista" id="v-tienda"></div>
   <div class="vista" id="v-imprimir"></div>
@@ -427,7 +428,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260804d-DOJO-V4.4';
+const VERSION_APP='20260804g-DOJO-V4.7';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -590,7 +591,7 @@ function datosNuevos(){
       {id:uid(),nombre:'Grupo 2',desde:'19:00',hasta:'20:00',dias:[2,4],activo:true}
     ],
     pensum:JSON.parse(JSON.stringify(PENSUM_FABRICA)),
-    prospectos:[], productos:[], ventas:[],
+    prospectos:[], productos:[], ventas:[], mensajes:{}, misMensajes:[],
     cinturones:cints, alumnos:[], familias:[], asistencia:[], pagos:[], examenes:[],
     bitacora:[],
     config:{cuota:90, diaVence:5, huella:null, huellaBorrar:true, moneda:'$', sonido:true, parentescos:[]}
@@ -617,6 +618,8 @@ function cargar(){
     if(!d.prospectos) d.prospectos=[];
     if(!d.productos) d.productos=[];
     if(!d.ventas) d.ventas=[];
+    if(!d.mensajes) d.mensajes={};
+    if(!d.misMensajes) d.misMensajes=[];
     ['grupos','cinturones','alumnos','familias','asistencia','pagos','examenes','bitacora']
       .forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
     d.cinturones.forEach(c=>{ if(!Array.isArray(c.tecnicas)) c.tecnicas=[]; });
@@ -830,7 +833,7 @@ function menu(){
   const items=[
     ['🎓','Listos para examen','elegibles'],['📋','Exámenes','examenes'],
     ['🥋','Cinturones y grados','cinturones'],['📚','Pénsum de grados','pensum'],['🕕','Grupos y horarios','grupos'],
-    ['🎯','Prospectos','prospectos'],['👨‍👩‍👧','Familias','familias'],
+    ['🎯','Prospectos','prospectos'],['💬','Mensajes','mensajes'],['👨‍👩‍👧','Familias','familias'],
     ['📄','Documentos y firmas','documentos'],['🛒','Tienda del dojo','tienda'],
     ['📈','Cómo se mueve el dojo','retencion'],
     ['🖨️','Imprimir todo','imprimir'],
@@ -3299,39 +3302,552 @@ function linkWhats(tel,texto){
   if(n.length===10) n='1'+n;              /* Estados Unidos */
   return 'https://wa.me/'+n+'?text='+encodeURIComponent(texto);
 }
-function plantillasPara(a,tipo){
-  const dojo=nombreEscuela();
-  const nom=nombreCorto(a)||a.nombre||'';
-  const mk=mesActual();
-  const debe=a.id?debeDelMes(a,mk):0;
-  const L=[];
-  if(tipo==='prospecto'){
-    L.push(['Invitarlo a la clase de prueba',
-      `Hola ${nom}, le saluda ${dojo}. Con mucho gusto lo esperamos para su clase de prueba, es gratis y sin compromiso. ¿Qué día le queda mejor?`]);
-    L.push(['Recordarle la clase de prueba',
-      `Hola ${nom}, le recuerdo su clase de prueba en ${dojo}. Traiga ropa cómoda, del uniforme nos encargamos después. ¡Lo esperamos!`]);
-    L.push(['Seguimiento después de la prueba',
-      `Hola ${nom}, ¿qué le pareció la clase? Si quiere seguir entrenando con nosotros, con gusto le explico los horarios y las cuotas.`]);
-    return L;
-  }
-  if(debe>0) L.push(['Cuota pendiente',
-    `Hola, le saluda ${dojo}. Le recuerdo que la cuota de ${nom} correspondiente a ${mesBonito(mk)} está pendiente: ${money(debe)}. Gracias.`]);
+/* ═══════════════ MENSAJES QUE SE PUEDEN EDITAR ═══════════════
+   El texto lo cambia él. Cuándo aparece y a quién le toca
+   se queda automático, como estaba.
+============================================================== */
+const MSJ_FABRICA=[
+ {id:'cuota', nombre:'Cuota pendiente', icono:'💵', para:'alumno',
+  cuando:'Aparece cuando el alumno debe la cuota del mes',
+  txt:'Hola, le saluda {dojo}. Le recuerdo que la cuota de {alumno} correspondiente a {mes} está pendiente: {monto}. Gracias.'},
+ {id:'cumple', nombre:'Felicitación de cumpleaños', icono:'🎂', para:'alumno',
+  cuando:'Aparece cuando faltan 7 días o menos para su cumpleaños',
+  txt:'¡Felicidades {alumno}! Todo el {dojo} le desea un feliz cumpleaños. ¡Osu!'},
+ {id:'novienen', nombre:'Hace días que no viene', icono:'👻', para:'alumno',
+  cuando:'Aparece cuando lleva 10 días o más sin venir a clase',
+  txt:'Hola, le saluda {dojo}. Notamos que {alumno} no ha venido a clases desde hace {dias} días. ¿Está todo bien? Lo extrañamos en el tatami.'},
+ {id:'examen', nombre:'Ya está listo para examen', icono:'🎓', para:'alumno',
+  cuando:'Aparece cuando cumplió todos los requisitos de su grado',
+  txt:'Hola, le saluda {dojo}. {alumno} ya cumplió los requisitos para presentarse a examen de grado. Le aviso la fecha en cuanto la tengamos.'},
+ {id:'permiso', nombre:'Falta firmar el permiso', icono:'📄', para:'alumno',
+  cuando:'Aparece cuando el permiso todavía no está firmado',
+  txt:'Hola, le saluda {dojo}. Nos falta el permiso de participación firmado de {alumno}. ¿Puede pasar unos minutos antes de la próxima clase para firmarlo?'},
+ {id:'clase', nombre:'Recordatorio de clase', icono:'🕕', para:'alumno',
+  cuando:'Aparece siempre, para cualquier alumno',
+  txt:'Hola, le saluda {dojo}. Le recuerdo que {alumno} tiene clase hoy. ¡Lo esperamos!'},
+ {id:'pr_invitar', nombre:'Invitar a la clase de prueba', icono:'👋', para:'prospecto',
+  cuando:'Aparece en cualquier prospecto',
+  txt:'Hola {alumno}, le saluda {dojo}. Con mucho gusto lo esperamos para su clase de prueba, es gratis y sin compromiso. ¿Qué día le queda mejor?'},
+ {id:'pr_recordar', nombre:'Recordar la clase de prueba', icono:'⏰', para:'prospecto',
+  cuando:'Aparece en cualquier prospecto',
+  txt:'Hola {alumno}, le recuerdo su clase de prueba en {dojo}. Traiga ropa cómoda, del uniforme nos encargamos después. ¡Lo esperamos!'},
+ {id:'pr_seguir', nombre:'Seguimiento después de la prueba', icono:'🔁', para:'prospecto',
+  cuando:'Aparece en cualquier prospecto',
+  txt:'Hola {alumno}, ¿qué le pareció la clase? Si quiere seguir entrenando con nosotros, con gusto le explico los horarios y las cuotas.'},
+];
+const ETIQUETAS=[
+ ['{alumno}','El nombre del alumno o del prospecto'],
+ ['{dojo}','El nombre de la escuela'],
+ ['{monto}','Lo que debe'],
+ ['{mes}','El mes de la cuota'],
+ ['{grado}','Su cinturón de ahora'],
+ ['{siguiente}','El cinturón que le toca'],
+ ['{dias}','Días que lleva sin venir'],
+ ['{edad}','Su edad'],
+ ['{madre}','El nombre de la madre'],
+ ['{padre}','El nombre del padre'],
+ ['{telefono}','El teléfono al que se manda'],
+];
+function textoMsj(id){
+  const f=MSJ_FABRICA.find(m=>m.id===id);
+  const mio=(D.mensajes||{})[id];
+  return (mio===undefined||mio===null||mio==='') ? (f?f.txt:'') : mio;
+}
+function esDeFabrica(id){
+  const f=MSJ_FABRICA.find(m=>m.id===id);
+  return !(D.mensajes||{})[id] || (D.mensajes||{})[id]===(f?f.txt:'');
+}
+/* cambia las llaves por los datos de verdad */
+function rellenarMsj(txt,a){
+  a=a||{};
+  const c=a.id?cintDe(a):null, e=a.id?elegibilidad(a):null;
+  const u=a.id?ultimaClase(a.id):null;
+  const dd=u?diasEntre(u,hoyISO()):'';
+  const ed=edadDe(a.nacim);
+  const v={
+    '{alumno}': a.id? (nombreCorto(a)||'') : (a.nombre||''),
+    '{dojo}': nombreEscuela(),
+    '{monto}': a.id? money(debeDelMes(a,mesActual())) : '',
+    '{mes}': mesBonito(mesActual()),
+    '{grado}': c? c.nombre : '',
+    '{siguiente}': e&&e.sig? e.sig.nombre : '',
+    '{dias}': dd===''?'':String(dd),
+    '{edad}': ed===null?'':String(ed),
+    '{madre}': a.madre? nombrePersona(a.madre) : '',
+    '{padre}': a.padre? nombrePersona(a.padre) : '',
+    '{telefono}': a.id? (telDeAviso(a)||'') : (a.tel||''),
+  };
+  return String(txt||'').replace(/\{[a-zá-úñ]+\}/gi, m => v[m]!==undefined? v[m] : m);
+}
+/* ¿qué mensajes le tocan a este alumno hoy? — esto NO se toca */
+function idsQueTocan(a,tipo){
+  if(tipo==='prospecto') return ['pr_invitar','pr_recordar','pr_seguir'];
+  const out=[];
+  if(a.id && debeDelMes(a,mesActual())>0) out.push('cuota');
   const d=diasParaCumple(a.nacim);
-  if(d!==null && d<=7) L.push(['Felicitación de cumpleaños',
-    `¡Felicidades ${nom}! Todo el ${dojo} le desea un feliz cumpleaños. ¡Osu!`]);
-  const u=ultimaClase(a.id), dd=u?diasEntre(u,hoyISO()):null;
-  if(dd!==null && dd>=10) L.push(['Hace días que no viene',
-    `Hola, le saluda ${dojo}. Notamos que ${nom} no ha venido a clases desde hace ${dd} días. ¿Está todo bien? Lo extrañamos en el tatami.`]);
+  if(d!==null && d<=7) out.push('cumple');
+  const u=a.id?ultimaClase(a.id):null, dd=u?diasEntre(u,hoyISO()):null;
+  if(dd!==null && dd>=10) out.push('novienen');
   const e=a.id?elegibilidad(a):null;
-  if(e&&e.listo) L.push(['Ya está listo para examen',
-    `Hola, le saluda ${dojo}. ${nom} ya cumplió los requisitos para presentarse a examen de grado. Le aviso la fecha en cuanto la tengamos.`]);
-  if(!(a.firma&&a.firma.trazo)) L.push(['Falta firmar el permiso',
-    `Hola, le saluda ${dojo}. Nos falta el permiso de participación firmado de ${nom}. ¿Puede pasar unos minutos antes de la próxima clase para firmarlo?`]);
-  L.push(['Recordatorio de clase',
-    `Hola, le saluda ${dojo}. Le recuerdo que ${nom} tiene clase hoy. ¡Lo esperamos!`]);
+  if(e&&e.listo) out.push('examen');
+  if(!(a.firma&&a.firma.trazo)) out.push('permiso');
+  out.push('clase');
+  return out;
+}
+function plantillasPara(a,tipo){
+  const L=idsQueTocan(a,tipo).map(id=>{
+    const f=MSJ_FABRICA.find(m=>m.id===id);
+    return [f?f.nombre:id, rellenarMsj(textoMsj(id),a)];
+  });
+  miosPara(tipo==='prospecto'?'prospecto':'alumno').forEach(m=>{
+    L.push([m.icono+' '+m.nombre, rellenarMsj(m.txt,a)]);
+  });
   L.push(['Escribir yo el mensaje','']);
   return L;
 }
+
+/* ═══════════════ MENSAJES PROPIOS ═══════════════ */
+function misMensajes(){ D.misMensajes=D.misMensajes||[]; return D.misMensajes; }
+const ICONOS_MSJ=['📢','📣','🎉','⚠️','🎊','🥋','📅','🏆','❄️','☀️','🚗','💪','🙏','📌'];
+
+function editarMiMensaje(id){
+  const m = id ? misMensajes().find(x=>x.id===id)
+              : {id:'',nombre:'',icono:'📢',txt:'',para:'alumno'};
+  hoja(id?'Mi mensaje':'Mensaje nuevo',`
+   <div class="campo"><label>¿Cómo se llama?</label>
+     <input id="mm-nom" value="${esc(m.nombre||'')}" placeholder="Ej: No hay clases"></div>
+   <div class="campo"><label>Símbolo</label>
+     <div style="display:flex;flex-wrap:wrap;gap:5px">
+       ${ICONOS_MSJ.map(i=>`<button class="btn chico ico-op${i===m.icono?' pri':''}" style="width:auto;padding:7px 10px"
+         data-ico="${i}" onclick="escogerIcono(this)">${i}</button>`).join('')}
+     </div><input type="hidden" id="mm-ico" value="${esc(m.icono||'📢')}"></div>
+   <div class="campo"><label>¿A quién se le puede mandar?</label>
+     <select id="mm-para">
+       <option value="alumno"${m.para==='alumno'?' selected':''}>A los alumnos</option>
+       <option value="prospecto"${m.para==='prospecto'?' selected':''}>A los prospectos</option>
+       <option value="ambos"${m.para==='ambos'?' selected':''}>A los dos</option>
+     </select></div>
+   <div class="campo"><label>Lo que le llega</label>
+     <textarea id="mm-txt" rows="5" oninput="previaMiMensaje()" placeholder="Hola, le saluda {dojo}. Le aviso que…">${esc(m.txt||'')}</textarea></div>
+   <div class="mini" style="margin-bottom:5px">Toca para insertar el dato:</div>
+   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px">
+     ${ETIQUETAS.map(([e,d])=>`<button class="btn chico" style="width:auto;padding:6px 9px"
+       title="${esc(d)}" onclick="ponerEtiquetaMia('${e}')">${esc(e)}</button>`).join('')}
+   </div>
+   <div class="card" style="margin:0"><div class="hd">Así le va a llegar</div>
+     <div class="mini" id="mm-previa" style="font-size:14px;line-height:1.45;color:var(--texto)"></div></div>
+   <button class="btn pri" style="margin-top:11px" onclick="guardarMiMensaje('${id||''}')">Guardar</button>
+   ${id?`<button class="btn peligro" style="margin-top:8px" onclick="borrarMiMensaje('${id}')">🗑️ Borrar este mensaje</button>`:''}`);
+  setTimeout(previaMiMensaje,80);
+}
+function escogerIcono(bt){
+  document.querySelectorAll('.ico-op').forEach(b=>b.classList.remove('pri'));
+  bt.classList.add('pri');
+  $('mm-ico').value=bt.dataset.ico;
+}
+function ponerEtiquetaMia(et){
+  const t=$('mm-txt'); if(!t) return;
+  const i=t.selectionStart===undefined? t.value.length : t.selectionStart;
+  const j=t.selectionEnd===undefined? i : t.selectionEnd;
+  t.value=t.value.slice(0,i)+et+t.value.slice(j);
+  t.focus(); try{ t.selectionStart=t.selectionEnd=i+et.length; }catch(e){}
+  previaMiMensaje();
+}
+function previaMiMensaje(){
+  const t=$('mm-txt'), p=$('mm-previa'); if(!t||!p) return;
+  const quien = ($('mm-para')&&$('mm-para').value==='prospecto')
+    ? ((D.prospectos||[])[0]||{nombre:'Pedro Gómez'})
+    : (alumnosActivos()[0]||{nombre:'Carlos',apellido:'Núñez'});
+  const r=rellenarMsj(t.value,quien);
+  p.textContent = r || '(vacío — no se va a poder mandar)';
+  p.style.color = r? 'var(--texto)' : 'var(--rojo)';
+}
+function guardarMiMensaje(id){
+  limpiarMarcas();
+  if(avisarFaltan(faltantes([['mm-nom','Cómo se llama'],['mm-txt','Lo que le llega']]))) return;
+  const o={nombre:$('mm-nom').value.trim(), icono:$('mm-ico').value||'📢',
+    para:$('mm-para').value, txt:$('mm-txt').value.trim()};
+  if(id){ Object.assign(misMensajes().find(x=>x.id===id),o); log('Cambió su mensaje "'+o.nombre+'"'); }
+  else { misMensajes().push({id:uid(),...o}); log('Creó el mensaje "'+o.nombre+'"'); }
+  if(!guardar()) return;
+  sonOK(); cerrarHoja(); toast('Guardado'); ir('mensajes');
+}
+function borrarMiMensaje(id){
+  const m=misMensajes().find(x=>x.id===id);
+  confirmarBorrar('¿Borrar "'+m.nombre+'"?',['Es un mensaje tuyo, no se puede recuperar'],()=>{
+    D.misMensajes=misMensajes().filter(x=>x.id!==id);
+    log('Borró su mensaje "'+m.nombre+'"');
+    guardar(); cerrarHoja(); toast('Borrado'); ir('mensajes');
+  });
+}
+/* los míos se suman a las plantillas de cada quien */
+function miosPara(tipo){
+  return misMensajes().filter(m=>m.para===tipo||m.para==='ambos');
+}
+
+/* ═══════════════ MANDAR A VARIOS ═══════════════ */
+let ENVIO={msj:null, tipo:'alumno', ids:[], hechos:[]};
+function mandarAVarios(){
+  const opciones=[
+    ...MSJ_FABRICA.filter(m=>m.para==='alumno').map(m=>({id:m.id,mio:false,icono:m.icono,nombre:m.nombre})),
+    ...misMensajes().map(m=>({id:m.id,mio:true,icono:m.icono,nombre:m.nombre,para:m.para})),
+  ];
+  hoja('📢 Mandar a varios',`
+   <div class="mini" style="margin-bottom:10px">Escoge el mensaje. Después marcas a quién,
+     y los vas mandando uno por uno tocando su nombre.</div>
+   ${opciones.map(o=>`<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+     onclick="elegirParaVarios('${o.id}',${o.mio})">
+     <div class="izq"><div class="n1">${o.icono} ${esc(o.nombre)}${o.mio?' <span class="chip a">mío</span>':''}</div></div>
+     <span class="fl gris">›</span></button>`).join('')}`);
+}
+function elegirParaVarios(id,mio){
+  const m = mio ? misMensajes().find(x=>x.id===id) : MSJ_FABRICA.find(x=>x.id===id);
+  if(!m) return;
+  ENVIO={msj:{id,mio,nombre:m.nombre,icono:m.icono,
+    txt: mio? m.txt : textoMsj(id)}, tipo:(mio&&m.para==='prospecto')?'prospecto':'alumno',
+    ids:[], hechos:[]};
+  const gente = ENVIO.tipo==='prospecto'
+    ? (D.prospectos||[]).filter(p=>p.tel)
+    : alumnosActivos().filter(a=>telDeAviso(a));
+  ENVIO.ids=gente.map(g=>g.id);
+  pintarAQuien();
+}
+function pintarAQuien(){
+  const gente = ENVIO.tipo==='prospecto'
+    ? (D.prospectos||[]).filter(p=>p.tel)
+    : alumnosActivos().filter(a=>telDeAviso(a));
+  hoja(ENVIO.msj.icono+' '+ENVIO.msj.nombre,`
+   <div class="mini" style="margin-bottom:9px">Marca a quién se lo vas a mandar.
+     <b>${ENVIO.ids.length}</b> de ${gente.length} marcados.</div>
+   <div class="dosc" style="margin-bottom:9px">
+     <button class="btn chico" onclick="marcarTodosEnvio(true)">Marcar todos</button>
+     <button class="btn chico" onclick="marcarTodosEnvio(false)">Quitar todos</button>
+   </div>
+   ${gente.length? gente.map(g=>`<label class="check">
+     <input type="checkbox" ${ENVIO.ids.includes(g.id)?'checked':''} onchange="marcarEnvio('${g.id}',this.checked)">
+     <span>${esc(ENVIO.tipo==='prospecto'? (g.nombre||'') : nombreAlumno(g))}
+       <span class="mini">· ${esc(ENVIO.tipo==='prospecto'? g.tel : telDeAviso(g))}</span></span></label>`).join('')
+     :'<div class="nota al">Nadie tiene teléfono guardado.</div>'}
+   ${gente.length?`<button class="btn pri" style="margin-top:11px" onclick="empezarEnvio()">
+     ➡️ Seguir con los marcados</button>`:''}`);
+}
+function marcarEnvio(id,si){
+  if(si){ if(!ENVIO.ids.includes(id)) ENVIO.ids.push(id); }
+  else ENVIO.ids=ENVIO.ids.filter(x=>x!==id);
+}
+function marcarTodosEnvio(si){
+  const gente = ENVIO.tipo==='prospecto'
+    ? (D.prospectos||[]).filter(p=>p.tel) : alumnosActivos().filter(a=>telDeAviso(a));
+  ENVIO.ids = si? gente.map(g=>g.id) : [];
+  pintarAQuien();
+}
+function empezarEnvio(){
+  if(!ENVIO.ids.length){ toast('No marcaste a nadie.'); return; }
+  ENVIO.hechos=[];
+  pintarEnvio();
+}
+function pintarEnvio(){
+  const gente = (ENVIO.tipo==='prospecto'
+    ? (D.prospectos||[]) : D.alumnos).filter(g=>ENVIO.ids.includes(g.id));
+  const faltan=gente.filter(g=>!ENVIO.hechos.includes(g.id)).length;
+  hoja(ENVIO.msj.icono+' '+ENVIO.msj.nombre,`
+   <div class="nota">Toca a cada uno y se abre WhatsApp con el mensaje escrito.
+     Al volver, se te marca en verde.<br><b>Faltan ${faltan} de ${gente.length}.</b></div>
+   ${gente.map(g=>{
+     const tel = ENVIO.tipo==='prospecto'? g.tel : telDeAviso(g);
+     const nom = ENVIO.tipo==='prospecto'? (g.nombre||'') : nombreAlumno(g);
+     const listo = ENVIO.hechos.includes(g.id);
+     const txt = rellenarMsj(ENVIO.msj.txt, g);
+     return `<a class="fila" style="text-decoration:none;color:inherit;${listo?'opacity:.55':''}"
+       target="_blank" rel="noopener" href="${esc(linkWhats(tel,txt))}"
+       onclick="marcarEnviado('${g.id}')">
+       <div class="izq"><div class="n1">${listo?'✅ ':''}${esc(nom)}</div>
+         <div class="mini">${esc(tel)}</div></div>
+       <span class="fl gris">${listo?'':'›'}</span></a>`;}).join('')}
+   <button class="btn" style="margin-top:11px" onclick="cerrarHoja();ir('mensajes')">Terminé</button>`);
+}
+function marcarEnviado(id){
+  if(!ENVIO.hechos.includes(id)) ENVIO.hechos.push(id);
+  const nom = ENVIO.tipo==='prospecto'
+    ? ((D.prospectos||[]).find(p=>p.id===id)||{}).nombre
+    : nombreAlumno(porId(D.alumnos,id));
+  log('Mandó "'+ENVIO.msj.nombre+'" a '+nom);
+  guardar();
+  setTimeout(pintarEnvio,400);
+}
+
+/* ═══════════════ MANDAR A TODOS DE UNA VEZ ═══════════════ */
+
+/* el número como lo quiere WhatsApp: +1 y diez dígitos */
+function numeroInternacional(tel){
+  let n=soloNumeros(tel);
+  if(!n) return '';
+  if(n.length===10) n='1'+n;
+  if(n.length<10) return '';
+  return '+'+n;
+}
+function correoDe(a){
+  if(!a) return '';
+  if(a.correo) return a.correo;
+  if(a.madre&&a.madre.correo) return a.madre.correo;
+  if(a.padre&&a.padre.correo) return a.padre.correo;
+  if(a.emerg&&a.emerg.correo) return a.emerg.correo;
+  return '';
+}
+/* para un mensaje que va a TODOS no se puede poner el nombre de uno */
+function rellenarGenerico(txt){
+  const v={'{alumno}':'su hijo','{dojo}':nombreEscuela(),'{monto}':'la cuota',
+    '{mes}':mesBonito(mesActual()),'{grado}':'su grado','{siguiente}':'el próximo grado',
+    '{dias}':'varios','{edad}':'','{madre}':'','{padre}':'','{telefono}':''};
+  return String(txt||'').replace(/\{[a-zá-úñ]+\}/gi, m => v[m]!==undefined? v[m] : m);
+}
+
+/* ---------- 1 · COPIAR LOS NÚMEROS ---------- */
+function copiarNumeros(){
+  const als=alumnosActivos().map(a=>({nom:nombreAlumno(a),tel:numeroInternacional(telDeAviso(a))}))
+    .filter(x=>x.tel);
+  const prs=(D.prospectos||[]).filter(p=>p.tel)
+    .map(p=>({nom:p.nombre||'',tel:numeroInternacional(p.tel)})).filter(x=>x.tel);
+  const sin=alumnosActivos().filter(a=>!numeroInternacional(telDeAviso(a))).length;
+  hoja('🔢 Copiar los números',`
+   <div class="nota">Copia todos los números de un tirón para armar tu
+     <b>lista de difusión</b> de WhatsApp sin ir alumno por alumno.</div>
+   <div class="dosc" style="margin-top:10px">
+     <button class="btn pri" onclick="copiarLista('alumnos')">🔢 Los ${als.length} alumnos</button>
+     <button class="btn" onclick="copiarLista('prospectos')">🔢 Los ${prs.length} prospectos</button>
+   </div>
+   ${sin?`<div class="nota al" style="margin-top:9px">⚠️ ${sin} alumno(s) no tienen teléfono guardado
+     y no van a salir en la lista.</div>`:''}
+   <div class="campo" style="margin-top:10px"><label>Los números (se copian con el botón)</label>
+     <textarea id="cp-txt" rows="7" readonly>${esc(als.map(x=>x.tel).join('\n'))}</textarea></div>
+   <div class="mini" id="cp-aviso"></div>
+
+   <div class="card" style="margin-top:12px"><div class="hd">Cómo se arma la lista de difusión</div>
+     <div class="mini" style="line-height:1.6">
+       <b>1.</b> Copia los números con el botón de arriba.<br>
+       <b>2.</b> Abre WhatsApp → los tres puntitos ⋮ → <b>Nueva difusión</b>.<br>
+       <b>3.</b> Pega o busca cada número y márcalos.<br>
+       <b>4.</b> Ponle de nombre <b>Padres del dojo</b>.<br>
+       <b>5.</b> Listo: cada mensaje que mandes ahí le llega a todos a la vez,
+       y cada uno lo recibe como un mensaje privado tuyo.
+     </div>
+   </div>
+   <div class="nota al" style="margin-top:10px">⚠️ <b>Muy importante:</b> la difusión solo le llega
+     a quien tenga tu número guardado en sus contactos. Es regla de WhatsApp.
+     Dile a cada padre al inscribirse que guarde el número del dojo.</div>`);
+}
+function copiarLista(cual){
+  const t = cual==='prospectos'
+    ? (D.prospectos||[]).filter(p=>p.tel).map(p=>numeroInternacional(p.tel)).filter(Boolean)
+    : alumnosActivos().map(a=>numeroInternacional(telDeAviso(a))).filter(Boolean);
+  const txt=t.join('\n');
+  if($('cp-txt')) $('cp-txt').value=txt;
+  copiarAlPortapapeles(txt, t.length+' número(s) copiados');
+}
+function copiarAlPortapapeles(txt,aviso){
+  const listo=()=>{ sonOK(); toast(aviso||'Copiado');
+    if($('cp-aviso')) $('cp-aviso').innerHTML='<span class="verde">✅ '+esc(aviso||'Copiado')+'</span>'; };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(listo).catch(()=>copiarAMano(txt,listo));
+      return;
+    }
+  }catch(e){}
+  copiarAMano(txt,listo);
+}
+function copiarAMano(txt,listo){
+  try{
+    const t=$('cp-txt')||document.createElement('textarea');
+    if(!$('cp-txt')){ t.value=txt; document.body.appendChild(t); }
+    t.removeAttribute('readonly'); t.focus(); t.select();
+    try{ t.setSelectionRange(0,999999); }catch(e){}
+    const ok=document.execCommand('copy');
+    t.setAttribute('readonly','readonly');
+    if(!$('cp-txt')) t.remove();
+    if(ok) return listo();
+  }catch(e){}
+  if($('cp-aviso')) $('cp-aviso').innerHTML=
+    '<span class="ambar">El teléfono no dejó copiar solo. Mantén el dedo sobre los números de arriba y dale a Copiar.</span>';
+}
+
+/* ---------- 2 · CORREO A TODOS ---------- */
+function correoATodos(){
+  const opciones=[
+    ...MSJ_FABRICA.filter(m=>m.para==='alumno').map(m=>({id:m.id,mio:false,icono:m.icono,nombre:m.nombre})),
+    ...misMensajes().map(m=>({id:m.id,mio:true,icono:m.icono,nombre:m.nombre})),
+  ];
+  hoja('📧 Correo a todos',`
+   <div class="nota">Este sí sale de un solo golpe: un correo a todos a la vez,
+     con las direcciones ocultas para que nadie vea las de los demás.</div>
+   <div class="mini" style="margin:10px 0">Escoge qué mandar:</div>
+   ${opciones.map(o=>`<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+     onclick="armarCorreo('${o.id}',${o.mio})">
+     <div class="izq"><div class="n1">${o.icono} ${esc(o.nombre)}${o.mio?' <span class="chip a">mío</span>':''}</div></div>
+     <span class="fl gris">›</span></button>`).join('')}
+   <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+     onclick="armarCorreo('',false)">
+     <div class="izq"><div class="n1">✏️ Escribir uno ahora</div></div>
+     <span class="fl gris">›</span></button>`);
+}
+let CORREO={asunto:'',cuerpo:'',ids:[]}, ULTIMO_CORREO='';
+function armarCorreo(id,mio){
+  let nombre='Aviso del dojo', txt='';
+  if(id){
+    const m = mio ? misMensajes().find(x=>x.id===id) : MSJ_FABRICA.find(x=>x.id===id);
+    if(m){ nombre=m.nombre; txt = mio? m.txt : textoMsj(id); }
+  }
+  const gente=alumnosActivos().map(a=>({id:a.id,nom:nombreAlumno(a),correo:correoDe(a)}))
+    .filter(x=>x.correo);
+  const sin=alumnosActivos().length-gente.length;
+  CORREO={asunto:nombre, cuerpo:rellenarGenerico(txt), ids:gente.map(g=>g.id)};
+  hoja('📧 '+nombre,`
+   ${gente.length? `<div class="mini" style="margin-bottom:9px">Le va a llegar a
+     <b>${gente.length}</b> familia(s) con correo guardado.</div>`
+     : '<div class="nota al">Ningún alumno tiene correo guardado. Ponles el correo en su ficha.</div>'}
+   ${sin?`<div class="nota al" style="margin-bottom:9px">⚠️ ${sin} alumno(s) sin correo: a esos no les llega.</div>`:''}
+   <div class="campo"><label>Asunto</label><input id="co-asunto" value="${esc(nombre)}"></div>
+   <div class="campo"><label>El mensaje</label>
+     <textarea id="co-txt" rows="7">${esc(CORREO.cuerpo)}</textarea></div>
+   <div class="mini" style="margin-bottom:9px">Como va a todos, no se puede poner el nombre
+     de cada uno. Si el mensaje traía datos personales, ya se cambiaron por palabras generales.</div>
+   ${gente.length?`<button class="btn pri" onclick="abrirCorreo()">📧 Abrir el correo con todos</button>`:''}
+   <div class="card" style="margin-top:11px"><div class="hd">A quién le llega (${gente.length})</div>
+     ${gente.map(g=>`<div class="fila"><div class="izq"><div class="n2">${esc(g.nom)}</div>
+       <div class="mini">${esc(g.correo)}</div></div></div>`).join('')||''}
+   </div>`);
+}
+function abrirCorreo(){
+  const asunto=($('co-asunto').value||'').trim();
+  const cuerpo=($('co-txt').value||'').trim();
+  if(!cuerpo){ marcarMal('co-txt',true);
+    return avisarFaltan([{id:'co-txt',etq:'El mensaje no puede quedar vacío'}]); }
+  const correos=alumnosActivos().map(a=>correoDe(a)).filter(Boolean);
+  const unicos=[...new Set(correos)];
+  if(!unicos.length){ toast('Nadie tiene correo guardado.'); return; }
+  const url='mailto:?bcc='+encodeURIComponent(unicos.join(','))
+    +'&subject='+encodeURIComponent(asunto)
+    +'&body='+encodeURIComponent(cuerpo);
+  log('Mandó un correo a todos: "'+asunto+'" ('+unicos.length+' familias)');
+  guardar();
+  ULTIMO_CORREO=url;
+  /* un enlace de verdad funciona mejor en el teléfono que cambiar la dirección */
+  const a=document.createElement('a'); a.href=url; a.style.display='none';
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),1200);
+  setTimeout(()=>{ cerrarHoja(); toast('Se abrió tu correo con '+unicos.length+' familias'); },600);
+}
+
+/* ---------- pantalla para editarlos ---------- */
+PINTORES.mensajes=()=>{
+  const grupo=(para,tit)=>`<div class="card"><div class="hd">${tit}</div>
+    ${MSJ_FABRICA.filter(m=>m.para===para).map(m=>`
+      <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+        onclick="editarMensaje('${m.id}')">
+        <div class="izq"><div class="n1">${m.icono} ${esc(m.nombre)}
+          ${esDeFabrica(m.id)?'':'<span class="chip a">cambiado</span>'}</div>
+          <div class="mini">${esc(rellenarMsj(textoMsj(m.id), alumnosActivos()[0]||{}).slice(0,88))}…</div></div>
+        <span class="fl gris">✏️</span></button>`).join('')}</div>`;
+  $('v-mensajes').innerHTML=`
+  <div class="card"><div class="hd">💬 Mensajes</div>
+    <div class="mini">Estos son los textos que se mandan por WhatsApp. Cámbialos como tú hablas.
+      Cuándo aparece cada uno y a quién le toca no cambia: eso sigue siendo automático.</div>
+  </div>
+  <div class="card"><div class="hd">📢 Mandar a todos de una vez</div>
+    <div class="mini" style="margin-bottom:9px">Para avisos como "no hay clases el lunes".</div>
+    <button class="btn pri" onclick="copiarNumeros()">🔢 Copiar los números (lista de difusión)</button>
+    <button class="btn" style="margin-top:7px" onclick="correoATodos()">📧 Correo a todos de un golpe</button>
+    <button class="btn" style="margin-top:7px" onclick="mandarAVarios()">💬 Ir mandando uno por uno</button>
+    <div class="mini" style="margin-top:9px">La <b>lista de difusión</b> es la única forma de que un
+      mensaje de WhatsApp le llegue a todos a la vez. Se arma una sola vez y después la usas siempre.</div>
+  </div>
+  <div class="card"><div class="hd">✏️ Mis mensajes (${misMensajes().length})</div>
+    <div class="mini" style="margin-bottom:9px">Los que tú escribas. Aparecen siempre,
+      en todos los alumnos o prospectos que escojas.</div>
+    ${misMensajes().length? misMensajes().map(m=>`
+      <button class="fila" style="width:100%;text-align:left;background:none;border:0"
+        onclick="editarMiMensaje('${m.id}')">
+        <div class="izq"><div class="n1">${m.icono} ${esc(m.nombre)}
+          <span class="chip">${m.para==='ambos'?'todos':(m.para==='prospecto'?'prospectos':'alumnos')}</span></div>
+          <div class="mini">${esc(rellenarMsj(m.txt, alumnosActivos()[0]||{}).slice(0,88))}…</div></div>
+        <span class="fl gris">✏️</span></button>`).join('')
+      :'<div class="vacio-msj">Todavía no has escrito ninguno.</div>'}
+    <button class="btn" style="margin-top:8px" onclick="editarMiMensaje()">➕ Escribir un mensaje mío</button>
+  </div>
+  ${grupo('alumno','Los de siempre · para los alumnos')}
+  ${grupo('prospecto','Los de siempre · para los prospectos')}
+  ${(D.mensajes&&Object.keys(D.mensajes).length)?
+    `<button class="btn peligro" onclick="volverMensajesFabrica()">↺ Volver todos al texto original</button>`:''}`;
+};
+function editarMensaje(id){
+  const f=MSJ_FABRICA.find(m=>m.id===id); if(!f) return;
+  const ejemplo = f.para==='prospecto'
+    ? ((D.prospectos||[])[0] || {nombre:'Pedro Gómez',tel:'(401) 555-0123'})
+    : (alumnosActivos()[0] || {nombre:'Carlos',apellido:'Núñez'});
+  hoja(f.icono+' '+f.nombre,`
+   <div class="nota">${esc(f.cuando)}. <b>Eso no cambia</b> — aquí solo cambias lo que dice.</div>
+   <div class="campo" style="margin-top:10px"><label>Lo que le llega</label>
+     <textarea id="ms-txt" rows="6" oninput="previaMensaje('${id}')">${esc(textoMsj(id))}</textarea></div>
+   <div class="mini" style="margin-bottom:5px">Toca para insertar el dato:</div>
+   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px">
+     ${ETIQUETAS.map(([e,d])=>`<button class="btn chico" style="width:auto;padding:6px 9px"
+       title="${esc(d)}" onclick="ponerEtiqueta('${e}','${id}')">${esc(e)}</button>`).join('')}
+   </div>
+   <div class="card" style="margin:0"><div class="hd">Así le va a llegar</div>
+     <div class="mini" id="ms-previa" style="font-size:14px;line-height:1.45;color:var(--texto)"></div>
+     <div class="mini" style="margin-top:7px">Ejemplo con ${esc(f.para==='prospecto'?(ejemplo.nombre||'un prospecto'):(nombreCorto(ejemplo)||'un alumno'))}.</div>
+   </div>
+   <button class="btn pri" style="margin-top:11px" onclick="guardarMensaje('${id}')">Guardar</button>
+   ${esDeFabrica(id)?'':`<button class="btn" style="margin-top:8px" onclick="volverUnoFabrica('${id}')">↺ Volver al texto original</button>`}`);
+  setTimeout(()=>previaMensaje(id),80);
+}
+function ejemploDe(id){
+  const f=MSJ_FABRICA.find(m=>m.id===id);
+  return f && f.para==='prospecto'
+    ? ((D.prospectos||[])[0] || {nombre:'Pedro Gómez',tel:'(401) 555-0123'})
+    : (alumnosActivos()[0] || {nombre:'Carlos',apellido:'Núñez',nacim:'2013-08-09'});
+}
+function previaMensaje(id){
+  const t=$('ms-txt'); const p=$('ms-previa'); if(!t||!p) return;
+  const r=rellenarMsj(t.value, ejemploDe(id));
+  p.textContent = r || '(vacío — no se va a poder mandar)';
+  p.style.color = r? 'var(--texto)' : 'var(--rojo)';
+}
+function ponerEtiqueta(et,id){
+  const t=$('ms-txt'); if(!t) return;
+  const i=t.selectionStart===undefined? t.value.length : t.selectionStart;
+  const j=t.selectionEnd===undefined? i : t.selectionEnd;
+  t.value = t.value.slice(0,i) + et + t.value.slice(j);
+  t.focus();
+  try{ t.selectionStart=t.selectionEnd=i+et.length; }catch(e){}
+  previaMensaje(id);
+}
+function guardarMensaje(id){
+  const t=($('ms-txt').value||'').trim();
+  if(!t){ marcarMal('ms-txt',true); return avisarFaltan([{id:'ms-txt',etq:'El mensaje no puede quedar vacío'}]); }
+  D.mensajes=D.mensajes||{};
+  const f=MSJ_FABRICA.find(m=>m.id===id);
+  if(t===f.txt) delete D.mensajes[id]; else D.mensajes[id]=t;
+  log('Cambió el mensaje "'+f.nombre+'"');
+  if(!guardar()) return;
+  sonOK(); cerrarHoja(); toast('Guardado'); ir('mensajes');
+}
+function volverUnoFabrica(id){
+  const f=MSJ_FABRICA.find(m=>m.id===id);
+  confirmarAccion('¿Volver "'+f.nombre+'" al texto original?',
+    ['Se pierde el texto que escribiste tú'], '↺ Sí, volver al original', ()=>{
+      if(D.mensajes) delete D.mensajes[id];
+      log('Devolvió al original el mensaje "'+f.nombre+'"');
+      guardar(); cerrarHoja(); toast('Vuelto al original'); ir('mensajes');
+    });
+}
+function volverMensajesFabrica(){
+  confirmarAccion('¿Volver TODOS los mensajes al texto original?',
+    ['Se pierden todos los textos que escribiste tú'], '↺ Sí, volver todos', ()=>{
+      D.mensajes={};
+      log('Devolvió todos los mensajes al texto original');
+      guardar(); toast('Todos vueltos al original'); ir('mensajes');
+    }, true);
+}
+
 let MSJ_LISTA=[], MSJ_TEL='', MSJ_QUIEN='';
 function mensajePara(a,tipo){
   MSJ_TEL = a.tel || telDeAviso(a) || '';
