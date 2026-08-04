@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="app-version" content="20260804b-DOJO-V4.2">
+<meta name="app-version" content="20260804d-DOJO-V4.4">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -427,7 +427,7 @@ body{background:#000}
    ======================================================================= */
 'use strict';
 const LLAVE='dojo_okamura_v1';
-const VERSION_APP='20260804b-DOJO-V4.2';
+const VERSION_APP='20260804d-DOJO-V4.4';
 
 /* ---------- cinturones de fábrica (se pueden cambiar todos) ---------- */
 const COLOR_CINT={blanco:'#e9e6df',amarillo:'#cfae3c',naranja:'#c4682f',verde:'#3d7a4b',
@@ -695,8 +695,10 @@ async function registrarHuella(){
   }catch(e){ alert('No se pudo registrar la huella ('+(e&&e.name||'error')+').'); }
 }
 function quitarHuella(){
-  if(!confirm('¿Quitar la huella de este aparato?\n\nVas a seguir entrando con tu clave.')) return;
-  D.config.huella=null; log('Quitó la huella'); guardar(); toast('Huella quitada'); pintar();
+  confirmarAccion('¿Quitar la huella de este aparato?',
+    ['Vas a seguir entrando con tu clave','La puedes volver a registrar cuando quieras'],
+    '🗑️ Sí, quitarla', ()=>{ D.config.huella=null; log('Quitó la huella');
+      guardar(); toast('Huella quitada'); pintar(); }, true);
 }
 async function pedirHuella(){
   const h=D.config.huella; if(!h||!h.activa||!h.id) return false;
@@ -987,10 +989,14 @@ function guardarLista(){
     log('Pasó lista de '+g.nombre+' el '+LISTA.fecha+': '+LISTA.presentes.length+' presentes'); }
   guardar(); toast('Lista guardada'); pintar();
 }
-async function borrarLista(){
+function borrarLista(){
   const s=D.asistencia.find(x=>x.fecha===LISTA.fecha&&x.grupoId===LISTA.grupoId);
   if(!s) return;
-  if(!confirm('¿Borrar la lista de este día?')) return;
+  confirmarBorrar('¿Borrar la lista del '+fLarga(LISTA.fecha)+'?',
+    [(s.presentes||[]).length+' alumno(s) marcados ese día'], ()=>borrarListaYa(s.id));
+}
+async function borrarListaYa(sid){
+  const s=porId(D.asistencia,sid); if(!s) return;
   if(!await confirmarDueno('borrar la lista del '+fLarga(LISTA.fecha))) return;
   D.asistencia=D.asistencia.filter(x=>x.id!==s.id);
   LISTA.presentes=[]; log('Borró la lista del '+LISTA.fecha);
@@ -1494,6 +1500,19 @@ function cerrarAviso(irA){
 
 /* =========================== BORRAR CON AVISO =========================== */
 /* titulo, lista de cosas que se van, y qué hacer si dice que sí */
+/* confirmación con la misma caja de la app, para acciones que no son borrar */
+function confirmarAccion(titulo, detalles, textoBoton, alHacer, peligro){
+  ACCION_BORRAR = alHacer;
+  if(peligro) sonPeligro(); else sonAlerta();
+  const cap=$('capa-aviso');
+  cap.innerHTML=`<div class="avisocaja${peligro?' peligro':''}" onclick="event.stopPropagation()">
+    <div class="avisotit">${esc(titulo)}</div>
+    ${(detalles||[]).length?`<ul class="avisolista">${detalles.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+    <button class="btn ${peligro?'peligro':'pri'}" onclick="hacerBorrado()">${esc(textoBoton||'Sí, seguir')}</button>
+    <button class="btn" style="margin-top:8px" onclick="ACCION_BORRAR=null;cerrarAviso()">Cancelar</button></div>`;
+  cap.classList.add('on');
+}
+
 let ACCION_BORRAR=null;
 function confirmarBorrar(titulo,seVan,alBorrar){
   sonPeligro();
@@ -3186,7 +3205,7 @@ function editarProspecto(id){
      <div class="campo"><label>Clase de prueba</label><input type="date" id="pr-prueba" value="${p.fechaPrueba||''}"></div>
    </div>
    <div class="campo"><label>Nota</label><textarea id="pr-nota" rows="2">${esc(p.nota||'')}</textarea></div>
-   ${p.tel?`<button class="btn" style="margin-top:8px" onclick="mensajePara({nombre:${JSON.stringify(p.nombre||'')},tel:${JSON.stringify(p.tel)}},'prospecto')">💬 Escribirle por WhatsApp</button>`:''}
+   ${id&&p.tel?`<button class="btn" style="margin-top:8px" onclick="mensajeProspecto('${id}')">💬 Escribirle por WhatsApp</button>`:''}
    <button class="btn pri" style="margin-top:10px" onclick="guardarProspecto('${id||''}')">Guardar</button>
    ${id?`<button class="btn" style="margin-top:8px" onclick="pasarAAlumno('${id}')">🥋 Convertirlo en alumno</button>
      <button class="btn peligro" style="margin-top:8px" onclick="borrarProspecto('${id}')">🗑️ Borrar</button>`:''}`);
@@ -3313,28 +3332,46 @@ function plantillasPara(a,tipo){
   L.push(['Escribir yo el mensaje','']);
   return L;
 }
+let MSJ_LISTA=[], MSJ_TEL='', MSJ_QUIEN='';
 function mensajePara(a,tipo){
-  const tel = a.tel || telDeAviso(a) || '';
-  const L=plantillasPara(a,tipo);
-  hoja('Mensaje para '+(nombreCorto(a)||a.nombre||''),`
-   ${tel?`<div class="mini" style="margin-bottom:9px">Se le manda a <b>${esc(tel)}</b>.
+  MSJ_TEL = a.tel || telDeAviso(a) || '';
+  MSJ_LISTA = plantillasPara(a,tipo);
+  MSJ_QUIEN = nombreCorto(a) || a.nombre || '';
+  hoja('Mensaje para '+MSJ_QUIEN,`
+   ${MSJ_TEL?`<div class="mini" style="margin-bottom:9px">Se le manda a <b>${esc(MSJ_TEL)}</b>.
      El mensaje se abre ya escrito en WhatsApp; tú solo le das a enviar.</div>`
-     :'<div class="nota al">No tiene teléfono guardado.</div>'}
-   ${L.map((x,i)=>`<button class="fila" style="width:100%;text-align:left;background:none;border:0"
-     onclick="mandarWhats('${esc(tel)}',${i},${JSON.stringify(JSON.stringify(L))})">
-     <div class="izq"><div class="n1">${esc(x[0])}</div>
-       ${x[1]?`<div class="mini">${esc(x[1].slice(0,95))}${x[1].length>95?'…':''}</div>`:''}</div>
-     <span class="fl gris">›</span></button>`).join('')}`);
+     :'<div class="nota al">No tiene teléfono guardado. Ponle el teléfono en su ficha y vuelve.</div>'}
+   ${MSJ_LISTA.map((x,i)=> x[1]
+     ? `<a class="fila" style="text-decoration:none;color:inherit" target="_blank" rel="noopener"
+          href="${esc(linkWhats(MSJ_TEL,x[1]))}" onclick="anotarMensaje(${i})">
+        <div class="izq"><div class="n1">${esc(x[0])}</div>
+          <div class="mini">${esc(x[1].slice(0,95))}${x[1].length>95?'…':''}</div></div>
+        <span class="fl gris">›</span></a>`
+     : `<button class="fila" style="width:100%;text-align:left;background:none;border:0"
+          onclick="mensajeLibre()">
+        <div class="izq"><div class="n1">${esc(x[0])}</div></div>
+        <span class="fl gris">›</span></button>`).join('')}`);
 }
-function mandarWhats(tel,i,lista){
-  const L=JSON.parse(lista);
-  let txt=L[i][1];
-  if(!txt){ txt=prompt('Escribe el mensaje:'); if(!txt) return; }
-  if(!tel){ toast('No tiene teléfono guardado.'); return; }
-  log('Mandó un mensaje: '+L[i][0]);
-  guardar();
-  window.open(linkWhats(tel,txt),'_blank');
+/* el prospecto se pasa por su id, nunca metiendo el nombre dentro del onclick */
+function mensajeProspecto(id){
+  const p=prospectos().find(x=>x.id===id); if(!p) return;
   cerrarHoja();
+  setTimeout(()=>mensajePara({nombre:p.nombre||'',tel:p.tel||''},'prospecto'),150);
+}
+function anotarMensaje(i){
+  const x=MSJ_LISTA[i]; if(!x) return;
+  log('Mandó un mensaje a '+MSJ_QUIEN+': '+x[0]);
+  guardar();
+  setTimeout(cerrarHoja,300);
+}
+function mensajeLibre(){
+  if(!MSJ_TEL){ toast('No tiene teléfono guardado.'); return; }
+  const t=prompt('Escribe el mensaje para '+MSJ_QUIEN+':');
+  if(!t || !t.trim()) return;
+  log('Mandó un mensaje a '+MSJ_QUIEN+' (escrito por él)');
+  guardar();
+  cerrarHoja();
+  window.open(linkWhats(MSJ_TEL,t.trim()),'_blank');
 }
 
 /* ═══════════════ 4 · CERTIFICADO DE GRADO ═══════════════ */
@@ -3867,9 +3904,13 @@ function verPagos(alumnoId){
     :'<div class="vacio-msj">Todavía no tiene pagos anotados.</div>')
    +`<button class="btn pri" style="margin-top:10px" onclick="cerrarHoja();registrarPago('${alumnoId}')">➕ Anotar un pago</button>`);
 }
-async function borrarPago(id,alumnoId){
+function borrarPago(id,alumnoId){
   const p=porId(D.pagos,id);
-  if(!confirm('¿Borrar este pago de '+money(p.monto)+'?')) return;
+  confirmarBorrar('¿Borrar este pago de '+money(p.monto)+'?',
+    ['El alumno va a volver a aparecer como que debe ese dinero'], ()=>borrarPagoYa(id,alumnoId));
+}
+async function borrarPagoYa(id,alumnoId){
+  const p=porId(D.pagos,id); if(!p) return;
   if(!await confirmarDueno('borrar un pago de '+money(p.monto))) return;
   D.pagos=D.pagos.filter(x=>x.id!==id); log('Borró un pago de '+money(p.monto));
   guardar(); toast('Borrado'); verPagos(alumnoId);
@@ -3958,10 +3999,11 @@ async function borrarCinturon(id){
   const c=porId(D.cinturones,id);
   const n=D.alumnos.filter(a=>a.cinturonId===id).length;
   if(n) return alert('No se puede borrar: '+n+' alumno(s) tienen el cinturón '+c.nombre+'.');
-  if(!confirm('¿Borrar el cinturón '+c.nombre+'?')) return;
-  if(!await confirmarDueno('borrar el cinturón '+c.nombre)) return;
-  D.cinturones=D.cinturones.filter(x=>x.id!==id); log('Borró el cinturón '+c.nombre);
-  guardar(); cerrarHoja(); toast('Borrado'); ir('cinturones');
+  confirmarBorrar('¿Borrar el cinturón '+c.nombre+'?',
+    ['Sus requisitos y técnicas se van con él'], async()=>{
+      if(!await confirmarDueno('borrar el cinturón '+c.nombre)) return;
+      D.cinturones=D.cinturones.filter(x=>x.id!==id); log('Borró el cinturón '+c.nombre);
+      guardar(); cerrarHoja(); toast('Borrado'); ir('cinturones'); });
 }
 
 /* =========================== LISTOS PARA EXAMEN =========================== */
@@ -4111,7 +4153,13 @@ function decidir(exId,i,paso){
 async function cerrarExamen(exId){
   const x=porId(D.examenes,exId);
   const sin=(x.alumnos||[]).filter(a=>a.paso===null).length;
-  if(sin && !confirm('Todavía hay '+sin+' alumno(s) sin decidir.\n\n¿Terminar de todos modos? A esos no les pasa nada.')) return;
+  if(sin){ return confirmarAccion('Todavía hay '+sin+' alumno(s) sin decidir',
+    ['A esos no les pasa nada: se quedan con su grado','Los que marcaste que pasaron sí suben'],
+    '🏁 Terminar de todos modos', ()=>cerrarExamenYa(exId)); }
+  cerrarExamenYa(exId);
+}
+async function cerrarExamenYa(exId){
+  const x=porId(D.examenes,exId);
   if(!await confirmarDueno('terminar el examen y promover a los que pasaron')) return;
   let n=0;
   (x.alumnos||[]).forEach(al=>{
@@ -4127,9 +4175,14 @@ async function cerrarExamen(exId){
   log('Terminó el examen "'+x.nombre+'": '+n+' promovidos');
   guardar(); toast(n+' promovidos'); pintar();
 }
-async function borrarExamen(exId){
+function borrarExamen(exId){
   const x=porId(D.examenes,exId);
-  if(!confirm('¿Borrar el examen "'+x.nombre+'"?\n\nLas promociones que ya se hicieron NO se deshacen.')) return;
+  confirmarBorrar('¿Borrar el examen "'+x.nombre+'"?',
+    [(x.alumnos||[]).length+' alumno(s) con sus calificaciones',
+     'Las promociones que ya se hicieron NO se deshacen'], ()=>borrarExamenYa(exId));
+}
+async function borrarExamenYa(exId){
+  const x=porId(D.examenes,exId); if(!x) return;
   if(!await confirmarDueno('borrar el examen '+x.nombre)) return;
   D.examenes=D.examenes.filter(e=>e.id!==exId); log('Borró el examen "'+x.nombre+'"');
   guardar(); toast('Borrado'); ir('examenes');
@@ -4198,10 +4251,10 @@ async function borrarGrupo(id){
   const g=porId(D.grupos,id);
   const n=D.alumnos.filter(a=>a.grupoId===id).length;
   if(n) return alert('No se puede borrar: '+n+' alumno(s) están en '+g.nombre+'.\n\nApágalo o muévelos primero.');
-  if(!confirm('¿Borrar el grupo '+g.nombre+'?')) return;
-  if(!await confirmarDueno('borrar el grupo '+g.nombre)) return;
-  D.grupos=D.grupos.filter(x=>x.id!==id); log('Borró el grupo '+g.nombre);
-  guardar(); cerrarHoja(); toast('Borrado'); ir('grupos');
+  confirmarBorrar('¿Borrar el grupo '+g.nombre+'?',['Sus horarios y días se van con él'], async()=>{
+      if(!await confirmarDueno('borrar el grupo '+g.nombre)) return;
+      D.grupos=D.grupos.filter(x=>x.id!==id); log('Borró el grupo '+g.nombre);
+      guardar(); cerrarHoja(); toast('Borrado'); ir('grupos'); });
 }
 
 /* =========================== FAMILIAS =========================== */
@@ -4454,10 +4507,15 @@ async function restaurarBackup(){
   fr.onload=e=>{
     let d; try{ d=JSON.parse(e.target.result); }catch(err){ return alert('Ese archivo no se puede leer.'); }
     if(!d||!d.v||!Array.isArray(d.alumnos)) return alert('Ese archivo no parece un backup de esta app.');
-    if(!confirm(`¿Restaurar?\n\nEl backup trae ${d.alumnos.length} alumnos.\nSe reemplaza TODO lo que hay ahora.`)) return;
-    const clave=D.clave; D=d; if(!D.clave) D.clave=clave;
-    log('Restauró un backup con '+d.alumnos.length+' alumnos');
-    guardar(); toast('Restaurado'); ir('inicio');
+    confirmarAccion('¿Restaurar este backup?',
+      ['El backup trae '+d.alumnos.length+' alumno(s)',
+       'Se REEMPLAZA todo lo que hay ahora en este aparato',
+       'Lo de hoy que no esté en el backup se pierde'],
+      '⬆️ Sí, restaurar', ()=>{
+        const clave=D.clave; D=d; if(!D.clave) D.clave=clave;
+        log('Restauró un backup con '+d.alumnos.length+' alumnos');
+        guardar(); sonOK(); toast('Restaurado'); ir('inicio');
+      }, true);
   };
   fr.readAsText(f);
 }
